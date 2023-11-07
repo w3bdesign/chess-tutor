@@ -8,7 +8,21 @@ import "/node_modules/@chrisoakman/chessboard2/dist/chessboard2.min.css";
 function App() {
   const chessboardRef = useRef(null);
   const chessRef = useRef(new Chess());
+  // Inside your component
   const [moveHistory, setMoveHistory] = useState([]);
+  const [movePairs, setMovePairs] = useState([]);
+
+  useEffect(() => {
+    // Update movePairs whenever moveHistory changes
+    const pairs = [];
+    for (let i = 0; i < moveHistory.length; i += 2) {
+      pairs.push({
+        white: moveHistory[i],
+        black: moveHistory[i + 1] || null, // Black move might not exist yet
+      });
+    }
+    setMovePairs(pairs);
+  }, [moveHistory]);
 
   useEffect(() => {
     const boardConfig = {
@@ -18,7 +32,7 @@ function App() {
         const move = chessRef.current.move({
           from: source,
           to: target,
-          promotion: 'q' // NOTE: Always promote to a queen for example simplicity
+          promotion: "q", // NOTE: Always promote to a queen for example simplicity
         });
 
         if (move === null) return "snapback";
@@ -40,14 +54,14 @@ function App() {
   // Function to get the appropriate emoji for a piece
   const getPieceEmoji = (piece) => {
     const pieceEmojis = {
-      p: '♟️', // pawn
-      n: '♞', // knight
-      b: '♝', // bishop
-      r: '♜', // rook
-      q: '♛', // queen
-      k: '♚', // king
+      p: "♟️", // pawn
+      n: "♞", // knight
+      b: "♝", // bishop
+      r: "♜", // rook
+      q: "♛", // queen
+      k: "♚", // king
     };
-    return pieceEmojis[piece.toLowerCase()] || '';
+    return pieceEmojis[piece.toLowerCase()] || "";
   };
 
   // Function to format move into algebraic notation
@@ -79,34 +93,17 @@ function App() {
               </tr>
             </thead>
             <tbody>
-              {moveHistory.map((move, index) => {
-                const moveNumber = Math.floor(index / 2) + 1;
-                if (index % 2 === 0) {
-                  // White's move
-                  return (
-                    <tr key={index}>
-                      <td className="px-4 py-2">{moveNumber}.</td>
-                      <td className="px-4 py-2">
-                        {formatMove(move)}
-                      </td>
-                      {index + 1 === moveHistory.length && (
-                        <td className="px-4 py-2"></td> // Empty cell if black hasn't moved yet
-                      )}
-                    </tr>
-                  );
-                } else {
-                  // Black's move
-                  return (
-                    <tr key={index}>
-                      <td className="px-4 py-2"></td> {/* Empty cell for move number */}
-                      <td className="px-4 py-2"></td> {/* Empty cell for white's move */}
-                      <td className="px-4 py-2">
-                        {formatMove(move)}
-                      </td>
-                    </tr>
-                  );
-                }
-              })}
+              {movePairs.map((pair, index) => (
+                <tr key={index}>
+                  <td className="px-4 py-2">{index + 1}.</td>
+                  <td className="px-4 py-2">
+                    {pair.white ? formatMove(pair.white) : ""}
+                  </td>
+                  <td className="px-4 py-2">
+                    {pair.black ? formatMove(pair.black) : ""}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
