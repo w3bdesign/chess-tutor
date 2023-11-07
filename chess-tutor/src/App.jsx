@@ -13,12 +13,18 @@ function App() {
     const boardConfig = {
       draggable: true,
       position: "start",
+
       onDrop: (source, target) => {
+
+        console.log("source: ", source);
+        console.log("target: ", target);
+
+
         // Attempt to make a move
         const move = chessRef.current.move({
-          from: source,
-          to: target,
-          promotion: "q", // NOTE: Always promote to a queen for example simplicity
+          from: source.source, // source should be a string like "e2"
+          to: source.target, // target should be a string like "e4"
+          //promotion: "q", // Always promote to a queen for example simplicity
         });
 
         // Illegal move
@@ -29,11 +35,7 @@ function App() {
         chessboardRef.current.position(chessRef.current.fen());
 
         // Check if the game is over
-
-        /*if (chessRef.current.game_over()) {
-          console.log('Game over');
-        }*/
-        
+        // ...
       },
     };
 
