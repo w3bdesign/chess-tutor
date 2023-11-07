@@ -13,17 +13,14 @@ function App() {
     const boardConfig = {
       draggable: true,
       position: "start",
-
-      onDrop: (source, target) => {
-
+      onDrop: ({ source, target }) => {
         console.log("source: ", source);
         console.log("target: ", target);
 
-
         // Attempt to make a move
         const move = chessRef.current.move({
-          from: source.source, // source should be a string like "e2"
-          to: source.target, // target should be a string like "e4"
+          from: source, // source should be a string like "e2"
+          to: target, // target should be a string like "e4"
           //promotion: "q", // Always promote to a queen for example simplicity
         });
 
@@ -33,15 +30,10 @@ function App() {
         // Update the board position after the piece snap
         // For castling, en passant, pawn promotion
         chessboardRef.current.position(chessRef.current.fen());
-
-        // Check if the game is over
-        // ...
       },
     };
 
     chessboardRef.current = Chessboard2("myBoard", boardConfig);
-
-    // Random move logic (for demonstration purposes)
 
     return () => {
       // Clean up the chessboard if the component unmounts
@@ -60,7 +52,6 @@ function App() {
       </div>
       <div className="flex flex-col p-2">
         <div
-          //ref={chessboardRef}
           id="myBoard"
           className="shadow border bg-white rounded p-4 w-full min-w-[40rem] min-h-[35rem]"
         ></div>
