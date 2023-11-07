@@ -65,9 +65,14 @@ function App() {
   };
 
   // Function to format move into algebraic notation
-  const formatMove = (move) => {
-    return move.san; // 'san' is the property for Standard Algebraic Notation
-  };
+// Function to format move into algebraic notation and append the piece emoji
+const formatMove = (move) => {
+  // Get the emoji for the piece that was moved
+  const emoji = getPieceEmoji(move.piece);
+  // Return the move in Standard Algebraic Notation followed by the emoji
+  return `${emoji}${move.san}`;
+};
+
 
   return (
     <>
