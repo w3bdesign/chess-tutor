@@ -55,7 +55,10 @@ function App() {
 
     return () => {
       if (chessboardRef.current) {
-        chessboardRef.current.destroy();
+        console.log("chessboardRef.current", chessboardRef.current);
+        console.log("Destroying chessboard");
+        
+        //chessboardRef.current.destroy();
       }
     };
   }, []);
