@@ -16,8 +16,6 @@ function ChessBoard({ setMovePairs }) {
     error,
   } = useStockfishEvaluation(chessRef.current.fen());
 
-  console.log("Is loading?", isLoading);
-
   useEffect(() => {
     const pairs = [];
     for (let i = 0; i < moveHistory.length; i += 2) {
@@ -34,6 +32,7 @@ function ChessBoard({ setMovePairs }) {
       draggable: true,
       position: "start",
       showNotation: true,
+
       onDrop: ({ source, target }) => {
         const move = chessRef.current.move({
           from: source,
