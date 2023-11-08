@@ -8,7 +8,7 @@ import "/node_modules/@chrisoakman/chessboard2/dist/chessboard2.min.css";
 function App() {
   const chessboardRef = useRef(null);
   const chessRef = useRef(new Chess());
-  // Inside your component
+
   const [moveHistory, setMoveHistory] = useState([]);
   const [movePairs, setMovePairs] = useState([]);
 
@@ -51,7 +51,12 @@ function App() {
     };
   }, []);
 
-  // Function to get the appropriate emoji for a piece
+  /**
+   * Returns the corresponding emoji for a given chess piece.
+   *
+   * @param {string} piece - The chess piece to get the emoji for.
+   * @return {string} The emoji corresponding to the given chess piece.
+   */
   const getPieceEmoji = (piece) => {
     const pieceEmojis = {
       p: "♟️", // pawn
@@ -64,15 +69,20 @@ function App() {
     return pieceEmojis[piece.toLowerCase()] || "";
   };
 
-  // Function to format move into algebraic notation
-// Function to format move into algebraic notation and append the piece emoji
-const formatMove = (move) => {
-  // Get the emoji for the piece that was moved
-  const emoji = getPieceEmoji(move.piece);
-  // Return the move in Standard Algebraic Notation followed by the emoji
-  return `${emoji}${move.san}`;
-};
-
+  /**
+   * Formats a move by adding an emoji for the piece that was moved.
+   *
+   * @param {object} move - The move to be formatted.
+   * @param {string} move.piece - The piece that was moved.
+   * @param {string} move.san - The Standard Algebraic Notation of the move.
+   * @return {string} The formatted move in Standard Algebraic Notation followed by the emoji.
+   */
+  const formatMove = (move) => {
+    // Get the emoji for the piece that was moved
+    const emoji = getPieceEmoji(move.piece);
+    // Return the move in Standard Algebraic Notation followed by the emoji
+    return `${emoji}${move.san}`;
+  };
 
   return (
     <>
@@ -112,6 +122,7 @@ const formatMove = (move) => {
             </tbody>
           </table>
         </div>
+        
       </div>
     </>
   );
