@@ -3,10 +3,6 @@ import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
 
 const useStockfishEvaluation = (fen) => {
-
-  console.log("Fen:", fen)
-
-
   return useQuery({
     queryKey: ["stockfishEvaluation", fen],
     queryFn: async () => {
