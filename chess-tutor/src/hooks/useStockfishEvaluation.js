@@ -1,13 +1,8 @@
 import axios from "axios";
-
 import { useQuery } from "@tanstack/react-query";
 
 const useStockfishEvaluation = (fen) => {
-
-  console.log("Fen:", fen)
-
-
-  return useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ["stockfishEvaluation", fen],
     queryFn: async () => {
       const response = await axios.get(
@@ -29,6 +24,12 @@ const useStockfishEvaluation = (fen) => {
     },
     enabled: !!fen, // This query will not automatically run until a fen is provided
   });
+
+  return {
+    data,
+    isLoading,   
+    error,
+  };
 };
 
 export default useStockfishEvaluation;
