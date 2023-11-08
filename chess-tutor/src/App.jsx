@@ -60,39 +60,6 @@ function App() {
     };
   }, []);
 
-  /**
-   * Returns the corresponding emoji for a given chess piece.
-   *
-   * @param {string} piece - The chess piece to get the emoji for.
-   * @return {string} The emoji corresponding to the given chess piece.
-   */
-  const getPieceEmoji = (piece) => {
-    const pieceEmojis = {
-      p: "♟️", // pawn
-      n: "♞", // knight
-      b: "♝", // bishop
-      r: "♜", // rook
-      q: "♛", // queen
-      k: "♚", // king
-    };
-    return pieceEmojis[piece.toLowerCase()] || "";
-  };
-
-  /**
-   * Formats a move by adding an emoji for the piece that was moved.
-   *
-   * @param {object} move - The move to be formatted.
-   * @param {string} move.piece - The piece that was moved.
-   * @param {string} move.san - The Standard Algebraic Notation of the move.
-   * @return {string} The formatted move in Standard Algebraic Notation followed by the emoji.
-   */
-  const formatMove = (move) => {
-    // Get the emoji for the piece that was moved
-    const emoji = getPieceEmoji(move.piece);
-    // Return the move in Standard Algebraic Notation followed by the emoji
-    return `${emoji}${move.san}`;
-  };
-
   return (
     <>
       <div className="flex flex-col p-2">
@@ -105,7 +72,7 @@ function App() {
           id="myBoard"
           className="shadow border bg-white rounded p-4 w-full min-w-[40rem] min-h-[35rem]"
         ></div>
-        <MoveHistory movePairs={movePairs} formatMove={formatMove} />
+        <MoveHistory movePairs={movePairs} />
       </div>
     </>
   );
