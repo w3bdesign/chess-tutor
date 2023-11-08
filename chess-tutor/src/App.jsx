@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Chessboard2 } from "/node_modules/@chrisoakman/chessboard2/dist/chessboard2.min.mjs";
 import { Chess } from "chess.js";
 
+import MoveHistory from "./components/MoveHistory";
+
 import "./App.css";
 import "/node_modules/@chrisoakman/chessboard2/dist/chessboard2.min.css";
 
@@ -28,6 +30,13 @@ function App() {
     const boardConfig = {
       draggable: true,
       position: "start",
+      /**
+       * Handles the drop event for a chess piece.
+       *
+       * @param {Object} source - The source square of the chess piece.
+       * @param {Object} target - The target square of the chess piece.
+       * @return {string} Returns "snapback" if the move is invalid, otherwise returns undefined.
+       */
       onDrop: ({ source, target }) => {
         const move = chessRef.current.move({
           from: source,
@@ -96,33 +105,7 @@ function App() {
           id="myBoard"
           className="shadow border bg-white rounded p-4 w-full min-w-[40rem] min-h-[35rem]"
         ></div>
-
-        <div className="move-history shadow border bg-white rounded p-4 mt-4">
-          <h2 className="text-xl font-bold">Move History</h2>
-          <table className="min-w-full">
-            <thead>
-              <tr>
-                <th className="px-4 py-2">Move</th>
-                <th className="px-4 py-2">White</th>
-                <th className="px-4 py-2">Black</th>
-              </tr>
-            </thead>
-            <tbody>
-              {movePairs.map((pair, index) => (
-                <tr key={index}>
-                  <td className="px-4 py-2">{index + 1}.</td>
-                  <td className="px-4 py-2">
-                    {pair.white ? formatMove(pair.white) : ""}
-                  </td>
-                  <td className="px-4 py-2">
-                    {pair.black ? formatMove(pair.black) : ""}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        
+        <MoveHistory movePairs={movePairs} formatMove={formatMove} />
       </div>
     </>
   );
