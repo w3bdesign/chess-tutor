@@ -12,9 +12,11 @@ function ChessBoard({ setMovePairs }) {
 
   const {
     data: evaluation,
-    isError,
+    isLoading,
     error,
   } = useStockfishEvaluation(chessRef.current.fen());
+
+  console.log("Is loading?", isLoading);
 
   useEffect(() => {
     const pairs = [];
@@ -58,7 +60,8 @@ function ChessBoard({ setMovePairs }) {
   return (
     <>
       <p className="text-lg p-4 mt-2 mb-4 font-semibold shadow border bg-white rounded w-full">
-        {isError ? error.message : evaluation}
+        {error ? error.message : evaluation}
+        {isLoading && "Calculating ..."}
       </p>
       <div
         id="myBoard"
