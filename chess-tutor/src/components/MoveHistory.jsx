@@ -1,5 +1,12 @@
 import React from 'react';
 
+/**
+ * Renders a component that displays the move history of a chess game.
+ *
+ * @param {Object} movePairs - An array of move pairs.
+ * @param {Function} formatMove - A function that formats a move.
+ * @return {JSX.Element} A React component that displays the move history.
+ */
 const MoveHistory = ({ movePairs, formatMove }) => {
   return (
     <div className="move-history shadow border bg-white rounded p-4 mt-4">
