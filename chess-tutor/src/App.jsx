@@ -64,8 +64,8 @@ function App() {
       <div className="flex flex-col p-2">
         <div className="shadow border bg-white rounded w-full min-w-[25rem]">
           <h1 className="text-2xl font-bold p-4">Chess Tutor</h1>
-          <p className="text-lg p-4">
-            Evaluation: {isError ? error.message : evaluation}
+          <p className="text-lg p-4 font-semibold">
+            Stockfish evaluation: {isError ? error.message : evaluation}
           </p>
         </div>
       </div>
