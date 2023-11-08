@@ -4,3 +4,4 @@
 
 # Chess tutor
 
+- API through https://stockfish.online/
