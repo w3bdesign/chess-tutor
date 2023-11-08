@@ -36,6 +36,7 @@ function App() {
     const boardConfig = {
       draggable: true,
       position: "start",
+      showNotation: true,
       onDrop: ({ source, target }) => {
         const move = chessRef.current.move({
           from: source,
