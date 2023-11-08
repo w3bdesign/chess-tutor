@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Chessboard2 } from "/node_modules/@chrisoakman/chessboard2/dist/chessboard2.min.mjs";
+import { Chessboard2 } from "@chrisoakman/chessboard2/dist/chessboard2.min.mjs";
 import { Chess } from "chess.js";
+import useStockfishEvaluation from "./hooks/useStockfishEvaluation";
 
 import MoveHistory from "./components/MoveHistory";
 
 import "./App.css";
-import "/node_modules/@chrisoakman/chessboard2/dist/chessboard2.min.css";
+import "@chrisoakman/chessboard2/dist/chessboard2.min.css";
 
 function App() {
   const chessboardRef = useRef(null);
@@ -14,13 +15,18 @@ function App() {
   const [moveHistory, setMoveHistory] = useState([]);
   const [movePairs, setMovePairs] = useState([]);
 
+  const {
+    data: evaluation,
+    isError,
+    error,
+  } = useStockfishEvaluation(chessRef.current.fen());
+
   useEffect(() => {
-    // Update movePairs whenever moveHistory changes
     const pairs = [];
     for (let i = 0; i < moveHistory.length; i += 2) {
       pairs.push({
         white: moveHistory[i],
-        black: moveHistory[i + 1] || null, // Black move might not exist yet
+        black: moveHistory[i + 1] || null,
       });
     }
     setMovePairs(pairs);
@@ -30,18 +36,11 @@ function App() {
     const boardConfig = {
       draggable: true,
       position: "start",
-      /**
-       * Handles the drop event for a chess piece.
-       *
-       * @param {Object} source - The source square of the chess piece.
-       * @param {Object} target - The target square of the chess piece.
-       * @return {string} Returns "snapback" if the move is invalid, otherwise returns undefined.
-       */
       onDrop: ({ source, target }) => {
         const move = chessRef.current.move({
           from: source,
           to: target,
-          promotion: "q", // NOTE: Always promote to a queen for example simplicity
+          promotion: "q",
         });
 
         if (move === null) return "snapback";
@@ -65,6 +64,9 @@ function App() {
       <div className="flex flex-col p-2">
         <div className="shadow border bg-white rounded w-full min-w-[25rem]">
           <h1 className="text-2xl font-bold p-4">Chess Tutor</h1>
+          <p className="text-lg p-4">
+            Evaluation: {isError ? error.message : evaluation}
+          </p>
         </div>
       </div>
       <div className="flex flex-col p-2">
