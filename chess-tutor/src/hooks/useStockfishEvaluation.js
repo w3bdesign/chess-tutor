@@ -17,7 +17,7 @@ const useStockfishEvaluation = (fen) => {
       {
         params: {
           fen: fen,
-          depth: 10,
+          depth: 15,
         },
       }
     );
