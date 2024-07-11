@@ -9,14 +9,13 @@ function ChessBoard({ setMovePairs }) {
   const chessRef = useRef(new Chess());
 
   const [moveHistory, setMoveHistory] = useState([]);
+  const [warningMessage, setWarningMessage] = useState(null);
 
   const {
     data: evaluation,
     isLoading,
     error,
   } = useStockfishEvaluation(chessRef.current.fen());
-
-  console.log("Is loading?", isLoading);
 
   useEffect(() => {
     const pairs = [];
@@ -34,17 +33,45 @@ function ChessBoard({ setMovePairs }) {
       draggable: true,
       position: "start",
       showNotation: true,
+
       onDrop: ({ source, target }) => {
-        const move = chessRef.current.move({
-          from: source,
-          to: target,
-          promotion: "q",
-        });
+        try {
+          const move = chessRef.current.move({
+            from: source,
+            to: target,
+            promotion: "q",
+          });
 
-        if (move === null) return "snapback";
+          if (move === null) {
+            // Instead of a generic message, let's try to determine why the move is invalid
+            const piece = chessRef.current.get(source);
+            if (!piece) {
+              setWarningMessage("No piece at the starting square.");
+            } else if (
+              chessRef.current.get(target) &&
+              piece.color === chessRef.current.get(target).color
+            ) {
+              setWarningMessage("Cannot capture your own piece.");
+            } else {
+              setWarningMessage(
+                `Invalid move for ${piece.type}. Please try again.`
+              );
+            }
+            return "snapback";
+          }
 
-        chessboardRef.current.position(chessRef.current.fen());
-        setMoveHistory(chessRef.current.history({ verbose: true }));
+          chessboardRef.current.position(chessRef.current.fen());
+          setMoveHistory(chessRef.current.history({ verbose: true }));
+          setWarningMessage(null);
+        } catch (error) {
+          console.error("Error making move:", error);
+          // Extract more informative message from the error
+          const errorMessage = error.message.includes("Invalid move")
+            ? "This move is not allowed. Please try a different move."
+            : "An unexpected error occurred. Please try again.";
+          setWarningMessage(errorMessage);
+          return "snapback";
+        }
       },
     };
 
@@ -63,6 +90,9 @@ function ChessBoard({ setMovePairs }) {
         {error ? error.message : evaluation}
         {isLoading && "Calculating ..."}
       </p>
+      {warningMessage && (
+        <p className="text-red-500 p-2 mb-2 font-semibold">{warningMessage}</p>
+      )}
       <div
         id="myBoard"
         className="shadow border bg-white rounded p-4 w-full min-w-[40rem] min-h-[35rem]"
