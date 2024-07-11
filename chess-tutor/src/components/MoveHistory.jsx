@@ -42,8 +42,7 @@ const formatMove = (move) => {
  */
 const MoveHistory = ({ movePairs }) => {
   return (
-    <div className="move-history shadow border bg-white rounded pl-12 pt-4 pr-10 mt-2 min-h-[50rem]">
-      <h2 className="text-xl font-bold">Move History</h2>
+    <div className="move-history shadow border bg-white rounded ml-4 pt-2 mt-2 min-h-[50rem] pr-[5rem] text-center">
       <table className="min-w-full">
         <thead>
           <tr>
