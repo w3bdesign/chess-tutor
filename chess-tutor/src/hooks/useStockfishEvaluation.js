@@ -6,18 +6,22 @@ const useStockfishEvaluation = (fen) => {
     queryKey: ["stockfishEvaluation", fen],
     queryFn: async () => {
       const response = await axios.get(
-        "https://stockfish.online/api/stockfish.php",
+        "https://stockfish.online/api/s/v2.php",
         {
           params: {
             fen: fen,
             depth: 10,
-            mode: "eval",
-            //mode: "bestmove"
           },
         }
       );
+
       if (response.data && response.data.success) {
-        return response.data.data;
+        return {
+          evaluation: response.data.evaluation,
+          mate: response.data.mate,
+          bestMove: response.data.bestmove.split(" ")[1], // Extract the best move
+          continuation: response.data.continuation,
+        };
       } else {
         throw new Error("Error getting evaluation");
       }
@@ -27,7 +31,7 @@ const useStockfishEvaluation = (fen) => {
 
   return {
     data,
-    isLoading,   
+    isLoading,
     error,
   };
 };
