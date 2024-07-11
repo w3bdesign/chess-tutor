@@ -68,28 +68,6 @@ Chess Tutor is an interactive web application that helps users improve their che
 4. The move history is updated after each move, showing Unicode chess piece symbols.
 5. Invalid moves will display warning messages to guide the user.
 
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
-
-## Acknowledgments
-
-- [Stockfish Online](https://stockfish.online/) for providing the chess engine API
-- [Chris Oakman](https://github.com/oakmac) for the Chessboard2 library
-- [Jeff Hlywa](https://github.com/jhlywa) for the chess.js library
-
-## Contact
-
-Your Name - [@your_twitter](https://twitter.com/your_twitter) - email@example.com
-
-Project Link: [https://github.com/your-username/chess-tutor](https://github.com/your-username/chess-tutor)
