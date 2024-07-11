@@ -7,12 +7,13 @@ import useStockfishEvaluation from "../hooks/useStockfishEvaluation";
 function ChessBoard({ setMovePairs }) {
   const chessboardRef = useRef(null);
   const chessRef = useRef(new Chess());
+  const bestMoveArrowRef = useRef(null);
 
   const [moveHistory, setMoveHistory] = useState([]);
   const [warningMessage, setWarningMessage] = useState(null);
 
   const {
-    data: evaluation,
+    data: evaluationData,
     isLoading,
     error,
   } = useStockfishEvaluation(chessRef.current.fen());
@@ -43,7 +44,6 @@ function ChessBoard({ setMovePairs }) {
           });
 
           if (move === null) {
-            // Instead of a generic message, let's try to determine why the move is invalid
             const piece = chessRef.current.get(source);
             if (!piece) {
               setWarningMessage("No piece at the starting square.");
@@ -63,9 +63,12 @@ function ChessBoard({ setMovePairs }) {
           chessboardRef.current.position(chessRef.current.fen());
           setMoveHistory(chessRef.current.history({ verbose: true }));
           setWarningMessage(null);
+
+          // Clear previous arrows
+          chessboardRef.current.clearArrows();
+          bestMoveArrowRef.current = null;
         } catch (error) {
           console.error("Error making move:", error);
-          // Extract more informative message from the error
           const errorMessage = error.message.includes("Invalid move")
             ? "This move is not allowed. Please try a different move."
             : "An unexpected error occurred. Please try again.";
@@ -84,10 +87,37 @@ function ChessBoard({ setMovePairs }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (evaluationData && evaluationData.bestMove) {
+      const from = evaluationData.bestMove.slice(0, 2);
+      const to = evaluationData.bestMove.slice(2, 4);
+
+      // Remove the previous best move arrow if it exists
+      if (bestMoveArrowRef.current) {
+        chessboardRef.current.removeArrow(bestMoveArrowRef.current);
+      }
+
+      // Add the new best move arrow
+      bestMoveArrowRef.current = chessboardRef.current.addArrow({
+        color: "#89736b",
+        start: from,
+        end: to,
+        size: "medium",
+        opacity: "70%",
+      });
+    }
+  }, [evaluationData]);
+
+  const formatEvaluation = (data) => {
+    if (!data) return "";
+    if (data.mate !== null) return `Mate in ${data.mate}`;
+    return `Evaluation: ${data.evaluation.toFixed(2)}`;
+  };
+
   return (
     <>
       <p className="text-lg p-4 mt-2 mb-4 font-semibold shadow border bg-white rounded w-full">
-        {error ? error.message : evaluation}
+        {error ? error.message : formatEvaluation(evaluationData)}
         {isLoading && "Calculating ..."}
       </p>
       {warningMessage && (
