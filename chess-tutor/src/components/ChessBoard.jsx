@@ -103,7 +103,7 @@ function ChessBoard({ setMovePairs }) {
         start: from,
         end: to,
         size: "medium",
-        opacity: "70%",
+        opacity: "60%",
       });
     }
   }, [evaluationData]);
