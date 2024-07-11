@@ -1,4 +1,4 @@
-![bilde](https://github.com/w3bdesign/chess-tutor/assets/45217974/57e84e7f-5226-4783-9ac7-76282547b4a4)
+![bilde](https://github.com/w3bdesign/chess-tutor/assets/45217974/8aca99fa-9625-4661-84e0-4220c9fc5b4b)
 
 <br/>
 
