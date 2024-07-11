@@ -42,23 +42,25 @@ const formatMove = (move) => {
  */
 const MoveHistory = ({ movePairs }) => {
   return (
-    <div className="move-history shadow border bg-white rounded ml-4 pt-2 mt-2 min-h-[50rem] pr-[5rem] text-center">
+    <div className="move-history shadow border bg-white rounded ml-4 pt-2 mt-2 min-h-[50rem] min-w-[19rem]">
       <table className="min-w-full">
         <thead>
           <tr>
-            <th className="px-4 py-2">Move</th>
-            <th className="px-4 py-2">White</th>
-            <th className="px-4 py-2">Black</th>
+            <th className="px-4 py-2 text-center min-w-[60px]">Move</th>
+            <th className="px-4 py-2 text-center min-w-[100px]">White</th>
+            <th className="px-4 py-2 text-center min-w-[100px]">Black</th>
           </tr>
         </thead>
         <tbody>
           {movePairs.map((pair, index) => (
             <tr key={index}>
-              <td className="px-4 py-2">{index + 1}.</td>
-              <td className="px-4 py-2">
+              <td className="px-4 py-2 text-center min-w-[60px]">
+                {index + 1}.
+              </td>
+              <td className="px-4 py-2 text-center min-w-[100px]">
                 {pair.white ? formatMove(pair.white) : ""}
               </td>
-              <td className="px-4 py-2">
+              <td className="px-4 py-2 text-center min-w-[100px]">
                 {pair.black ? formatMove(pair.black) : ""}
               </td>
             </tr>
