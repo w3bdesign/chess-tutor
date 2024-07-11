@@ -17,7 +17,7 @@ const useStockfishEvaluation = (fen) => {
       {
         params: {
           fen: fen,
-          depth: 10,
+          depth: 15,
         },
       }
     );
@@ -40,7 +40,7 @@ const useStockfishEvaluation = (fen) => {
       {
         params: {
           fen: fen,
-          depth: 10,
+          depth: 15,
           mode: "eval",
         },
       }
@@ -51,7 +51,7 @@ const useStockfishEvaluation = (fen) => {
       {
         params: {
           fen: fen,
-          depth: 10,
+          depth: 15,
           mode: "bestmove",
         },
       }
