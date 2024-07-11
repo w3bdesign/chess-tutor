@@ -1,4 +1,4 @@
-<img src="https://user-images.githubusercontent.com/45217974/281220074-ab49ce6d-5eca-4f30-8781-e6e855934a35.png" alt="Screenshot">
+![bilde](https://github.com/w3bdesign/chess-tutor/assets/45217974/25ad0cb5-b21a-4022-8ee0-ea7a79fc68cf)
 
 <br/>
 
