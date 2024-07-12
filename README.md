@@ -20,6 +20,7 @@ Chess Tutor is an interactive web application that helps users improve their che
 - [chess.js](https://github.com/jhlywa/chess.js) for chess move validation and game state
 - [Stockfish Online API](https://stockfish.online/) for move evaluation
 - [TanStack Query](https://tanstack.com/query/latest) for efficient data fetching and caching
+- [Zusand](https://docs.pmnd.rs/zustand/getting-started/introduction) for centralized state management
 - Tailwind CSS for styling
 
 ## Getting Started
