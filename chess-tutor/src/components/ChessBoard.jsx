@@ -1,80 +1,56 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Chessboard2 } from "@chrisoakman/chessboard2/dist/chessboard2.min.mjs";
-import { Chess } from "chess.js";
 
+import useChessStore from "../stores/useChessStore";
 import useStockfishEvaluation from "../hooks/useStockfishEvaluation";
 
-function ChessBoard({ setMovePairs }) {
+function ChessBoard() {
   const chessboardRef = useRef(null);
-  const chessRef = useRef(new Chess());
   const bestMoveArrowRef = useRef(null);
 
-  const [moveHistory, setMoveHistory] = useState([]);
-  const [warningMessage, setWarningMessage] = useState(null);
-
   const {
-    data: evaluationData,
+    chess,
+    makeMove,
+    warningMessage,
+    evaluationData,
     isLoading,
     error,
-  } = useStockfishEvaluation(chessRef.current.fen());
+    setEvaluationData,
+    setIsLoading,
+    setError,
+  } = useChessStore();
+
+  const {
+    data,
+    isLoading: evalIsLoading,
+    error: evalError,
+  } = useStockfishEvaluation(chess.fen());
 
   useEffect(() => {
-    const pairs = [];
-    for (let i = 0; i < moveHistory.length; i += 2) {
-      pairs.push({
-        white: moveHistory[i],
-        black: moveHistory[i + 1] || null,
-      });
-    }
-    setMovePairs(pairs);
-  }, [moveHistory, setMovePairs]);
+    setEvaluationData(data);
+    setIsLoading(evalIsLoading);
+    setError(evalError);
+  }, [
+    data,
+    evalIsLoading,
+    evalError,
+    setEvaluationData,
+    setIsLoading,
+    setError,
+  ]);
 
   useEffect(() => {
     const boardConfig = {
       draggable: true,
       position: "start",
       showNotation: true,
-
       onDrop: ({ source, target }) => {
-        try {
-          const move = chessRef.current.move({
-            from: source,
-            to: target,
-            promotion: "q",
-          });
-
-          if (move === null) {
-            const piece = chessRef.current.get(source);
-            if (!piece) {
-              setWarningMessage("No piece at the starting square.");
-            } else if (
-              chessRef.current.get(target) &&
-              piece.color === chessRef.current.get(target).color
-            ) {
-              setWarningMessage("Cannot capture your own piece.");
-            } else {
-              setWarningMessage(
-                `Invalid move for ${piece.type}. Please try again.`
-              );
-            }
-            return "snapback";
-          }
-
-          chessboardRef.current.position(chessRef.current.fen());
-          setMoveHistory(chessRef.current.history({ verbose: true }));
-          setWarningMessage(null);
-
-          // Clear previous arrows
-          chessboardRef.current.clearArrows();
-          bestMoveArrowRef.current = null;
-        } catch (error) {
-          console.error("Error making move:", error);
-          const errorMessage = error.message.includes("Invalid move")
-            ? "This move is not allowed. Please try a different move."
-            : "An unexpected error occurred. Please try again.";
-          setWarningMessage(errorMessage);
-          return "snapback";
-        }
+        const moveSuccessful = makeMove(source, target);
+        if (!moveSuccessful) return "snapback";
+        chessboardRef.current.position(chess.fen());
+        // Clear previous arrows
+        chessboardRef.current.clearArrows();
+        bestMoveArrowRef.current = null;
       },
     };
 
@@ -85,19 +61,17 @@ function ChessBoard({ setMovePairs }) {
         //chessboardRef.current.destroy();
       }
     };
-  }, []);
+  }, [chess, makeMove]);
 
   useEffect(() => {
     if (evaluationData && evaluationData.bestMove) {
       const from = evaluationData.bestMove.slice(0, 2);
       const to = evaluationData.bestMove.slice(2, 4);
 
-      // Remove the previous best move arrow if it exists
       if (bestMoveArrowRef.current) {
         chessboardRef.current.removeArrow(bestMoveArrowRef.current);
       }
 
-      // Add the new best move arrow
       bestMoveArrowRef.current = chessboardRef.current.addArrow({
         color: "#89736b",
         start: from,
