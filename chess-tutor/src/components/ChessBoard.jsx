@@ -1,49 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Chessboard2 } from "@chrisoakman/chessboard2/dist/chessboard2.min.mjs";
 
+import CapturedPieces from "./CapturedPieces";
+
 import useChessStore from "../stores/useChessStore";
 import useStockfishEvaluation from "../hooks/useStockfishEvaluation";
-
-function CapturedPieces({ capturedPieces }) {
-  const renderPiece = (piece, index) => (
-    <span key={index} className="text-2xl mr-1">
-      {piece === "p"
-        ? "♙"
-        : piece === "n"
-        ? "♘"
-        : piece === "b"
-        ? "♗"
-        : piece === "r"
-        ? "♖"
-        : piece === "q"
-        ? "♕"
-        : piece === "P"
-        ? "♟"
-        : piece === "N"
-        ? "♞"
-        : piece === "B"
-        ? "♝"
-        : piece === "R"
-        ? "♜"
-        : piece === "Q"
-        ? "♛"
-        : ""}
-    </span>
-  );
-
-  return (
-    <div className="flex justify-between mt-2 p-2 bg-gray-100 rounded">
-      <div>
-        <span className="font-bold mr-2">White captured:</span>
-        {capturedPieces.white.map(renderPiece)}
-      </div>
-      <div>
-        <span className="font-bold mr-2">Black captured:</span>
-        {capturedPieces.black.map(renderPiece)}
-      </div>
-    </div>
-  );
-}
 
 function ChessBoard() {
   const chessboardRef = useRef(null);
