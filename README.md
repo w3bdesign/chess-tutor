@@ -11,6 +11,7 @@ Chess Tutor is an interactive web application that helps users improve their che
 - Best move suggestions with visual arrows
 - Detailed move history with Unicode chess piece symbols
 - Responsive design for various screen sizes
+- Zustand for centralized state management
 
 ## Technologies Used
 
