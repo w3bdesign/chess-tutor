@@ -1,12 +1,57 @@
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Chessboard2 } from "@chrisoakman/chessboard2/dist/chessboard2.min.mjs";
 
 import useChessStore from "../stores/useChessStore";
 import useStockfishEvaluation from "../hooks/useStockfishEvaluation";
 
+function CapturedPieces({ capturedPieces }) {
+  const renderPiece = (piece, index) => (
+    <span key={index} className="text-2xl mr-1">
+      {piece === "p"
+        ? "♙"
+        : piece === "n"
+        ? "♘"
+        : piece === "b"
+        ? "♗"
+        : piece === "r"
+        ? "♖"
+        : piece === "q"
+        ? "♕"
+        : piece === "P"
+        ? "♟"
+        : piece === "N"
+        ? "♞"
+        : piece === "B"
+        ? "♝"
+        : piece === "R"
+        ? "♜"
+        : piece === "Q"
+        ? "♛"
+        : ""}
+    </span>
+  );
+
+  return (
+    <div className="flex justify-between mt-2 p-2 bg-gray-100 rounded">
+      <div>
+        <span className="font-bold mr-2">White captured:</span>
+        {capturedPieces.white.map(renderPiece)}
+      </div>
+      <div>
+        <span className="font-bold mr-2">Black captured:</span>
+        {capturedPieces.black.map(renderPiece)}
+      </div>
+    </div>
+  );
+}
+
 function ChessBoard() {
   const chessboardRef = useRef(null);
   const bestMoveArrowRef = useRef(null);
+  const [capturedPieces, setCapturedPieces] = useState({
+    white: [],
+    black: [],
+  });
 
   const {
     chess,
@@ -39,15 +84,53 @@ function ChessBoard() {
     setError,
   ]);
 
+  const updateCapturedPieces = () => {
+    const captured = { white: [], black: [] };
+    const initialPieces = {
+      p: 8,
+      n: 2,
+      b: 2,
+      r: 2,
+      q: 1,
+      P: 8,
+      N: 2,
+      B: 2,
+      R: 2,
+      Q: 1,
+    };
+
+    const currentPieces = chess
+      .board()
+      .flat()
+      .filter(Boolean)
+      .reduce((acc, { type, color }) => {
+        const pieceKey =
+          color === "w" ? type.toUpperCase() : type.toLowerCase();
+        acc[pieceKey] = (acc[pieceKey] || 0) + 1;
+        return acc;
+      }, {});
+
+    for (const [piece, count] of Object.entries(initialPieces)) {
+      const diff = count - (currentPieces[piece] || 0);
+      if (diff > 0) {
+        const color = piece === piece.toUpperCase() ? "black" : "white";
+        captured[color].push(...Array(diff).fill(piece));
+      }
+    }
+
+    setCapturedPieces(captured);
+  };
+
   useEffect(() => {
     const boardConfig = {
       draggable: true,
-      position: "start",
+      position: chess.fen(),
       showNotation: true,
       onDrop: ({ source, target }) => {
         const moveSuccessful = makeMove(source, target);
         if (!moveSuccessful) return "snapback";
         chessboardRef.current.position(chess.fen());
+        updateCapturedPieces();
         // Clear previous arrows
         chessboardRef.current.clearArrows();
         bestMoveArrowRef.current = null;
@@ -55,6 +138,7 @@ function ChessBoard() {
     };
 
     chessboardRef.current = Chessboard2("myBoard", boardConfig);
+    updateCapturedPieces();
 
     return () => {
       if (chessboardRef.current) {
@@ -101,6 +185,7 @@ function ChessBoard() {
         id="myBoard"
         className="shadow border bg-white rounded p-4 w-full min-w-[40rem] min-h-[35rem]"
       ></div>
+      <CapturedPieces capturedPieces={capturedPieces} />
     </>
   );
 }
