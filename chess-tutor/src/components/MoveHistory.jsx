@@ -1,5 +1,7 @@
 import React from "react";
 
+import useChessStore from "../stores/useChessStore";
+
 /**
  * Returns the corresponding Unicode character for a given chess piece.
  *
@@ -49,7 +51,17 @@ const formatMove = (move, color) => {
  * @param {Object} movePairs - An array of move pairs.
  * @return {JSX.Element} A React component that displays the move history.
  */
-const MoveHistory = ({ movePairs }) => {
+const MoveHistory = () => {
+  const { moveHistory } = useChessStore();
+
+  const movePairs = [];
+  for (let i = 0; i < moveHistory.length; i += 2) {
+    movePairs.push({
+      white: moveHistory[i],
+      black: moveHistory[i + 1] || null,
+    });
+  }
+
   return (
     <div className="move-history shadow border bg-white rounded ml-4 pt-2 mt-2 min-h-[50rem] min-w-[19rem]">
       <table className="min-w-full">
