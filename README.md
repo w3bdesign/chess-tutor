@@ -1,6 +1,6 @@
 # Chess Tutor
 
-![Chess Tutor](https://github.com/w3bdesign/chess-tutor/assets/45217974/25ad0cb5-b21a-4022-8ee0-ea7a79fc68cf)
+![image](https://github.com/user-attachments/assets/492951bb-6509-4ff9-963c-db4a5b75c437)
 
 Chess Tutor is an interactive web application that helps users improve their chess skills by providing real-time move analysis and suggestions using the Stockfish chess engine.
 
