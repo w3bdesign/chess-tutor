@@ -14,16 +14,7 @@ const useChessStore = create((set, get) => ({
     try {
       const move = chess.move({ from, to, promotion: "q" });
       if (move === null) {
-        const piece = chess.get(from);
-        if (!piece) {
-          set({ warningMessage: "No piece at the starting square." });
-        } else if (chess.get(to) && piece.color === chess.get(to).color) {
-          set({ warningMessage: "Cannot capture your own piece." });
-        } else {
-          set({
-            warningMessage: `Invalid move for ${piece.type}. Please try again.`,
-          });
-        }
+        set({ warningMessage: getWarningMessage(chess, from, to) });
         return false;
       }
       set({
@@ -33,10 +24,11 @@ const useChessStore = create((set, get) => ({
       return true;
     } catch (error) {
       console.error("Error making move:", error);
-      const errorMessage = error.message.includes("Invalid move")
-        ? "This move is not allowed. Please try a different move."
-        : "An unexpected error occurred. Please try again.";
-      set({ warningMessage: errorMessage });
+      set({
+        warningMessage: error.message.includes("Invalid move")
+          ? "This move is not allowed. Please try a different move."
+          : "An unexpected error occurred. Please try again.",
+      });
       return false;
     }
   },
@@ -46,9 +38,8 @@ const useChessStore = create((set, get) => ({
   setError: (error) => set({ error }),
 
   resetGame: () => {
-    const newChess = new Chess();
     set({
-      chess: newChess,
+      chess: new Chess(),
       moveHistory: [],
       warningMessage: null,
       evaluationData: null,
@@ -57,5 +48,15 @@ const useChessStore = create((set, get) => ({
     });
   },
 }));
+
+function getWarningMessage(chess, from, to) {
+  const piece = chess.get(from);
+  const targetPiece = chess.get(to);
+
+  if (!piece) return "No piece at the starting square.";
+  if (targetPiece && piece.color === targetPiece.color)
+    return "Cannot capture your own piece.";
+  return `Invalid move for ${piece.type}. Please try again.`;
+}
 
 export default useChessStore;
