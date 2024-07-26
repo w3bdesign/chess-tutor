@@ -1,5 +1,6 @@
 import ChessBoard from "./components/ChessBoard";
 import MoveHistory from "./components/MoveHistory";
+import Navbar from "./components/Navbar";
 
 import useChessStore from "./stores/useChessStore";
 
@@ -10,6 +11,7 @@ function App() {
   const resetGame = useChessStore((state) => state.resetGame);
   return (
     <div className="container mx-auto p-4">
+      <Navbar />
       <div className="shadow border bg-white rounded w-full mb-4">
         <h1 className="text-2xl font-bold p-4">Chess Tutor</h1>
       </div>
