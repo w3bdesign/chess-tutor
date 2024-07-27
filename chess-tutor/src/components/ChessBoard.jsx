@@ -9,7 +9,6 @@ import useStockfishEvaluation from "../hooks/useStockfishEvaluation";
 export const chessboardRef = { current: null };
 
 function ChessBoard() {
-  //const chessboardRef = useRef(null);
   const bestMoveArrowRef = useRef(null);
   const [capturedPieces, setCapturedPieces] = useState({
     white: [],
