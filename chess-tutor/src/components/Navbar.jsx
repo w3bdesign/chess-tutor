@@ -7,7 +7,7 @@ const Navbar = () => {
         <li>
           <a href="#analysis" className="text-white hover:text-gray-400">Analysis</a>
         </li>
-        <li>
+        <li className="hidden">
           <a href="#puzzles" className="text-white hover:text-gray-400">Puzzles</a>
         </li>
       </ul>
