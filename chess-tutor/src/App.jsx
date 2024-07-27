@@ -18,6 +18,21 @@ function App() {
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="lg:w-2/3">
           <ChessBoard />
+          <div className="mt-4">
+            <input
+              type="text"
+              placeholder="Enter FEN"
+              className="border p-2 mr-2"
+            />
+            <input
+              type="text"
+              placeholder="Enter PGN"
+              className="border p-2 mr-2"
+            />
+            <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+              Import
+            </button>
+          </div>
           <button
             onClick={resetGame}
             className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
