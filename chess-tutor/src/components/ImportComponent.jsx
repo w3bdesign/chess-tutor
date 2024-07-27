@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import useChessStore from "../stores/useChessStore";
-import { chessboardRef } from "./ChessBoard"; // Pa21e
+import { chessboardRef } from "./ChessBoard";
 
 const ImportComponent = () => {
   const [fenInput, setFenInput] = useState("");
