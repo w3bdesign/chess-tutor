@@ -6,8 +6,10 @@ import CapturedPieces from "./CapturedPieces";
 import useChessStore from "../stores/useChessStore";
 import useStockfishEvaluation from "../hooks/useStockfishEvaluation";
 
+export const chessboardRef = { current: null };
+
 function ChessBoard() {
-  const chessboardRef = useRef(null);
+  //const chessboardRef = useRef(null);
   const bestMoveArrowRef = useRef(null);
   const [capturedPieces, setCapturedPieces] = useState({
     white: [],
