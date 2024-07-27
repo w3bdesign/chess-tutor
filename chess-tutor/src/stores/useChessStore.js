@@ -49,6 +49,13 @@ const useChessStore = create((set, get) => ({
     updateMoveHistory();
   },
 
+  loadFen: (fen) => {
+    const { chess, updateMoveHistory } = get();
+    chess.load(fen);
+    set({ fen });
+    updateMoveHistory();
+  },
+
   updateMoveHistory: () => {
     const { chess } = get();
     set({ moveHistory: chess.history({ verbose: true }) });
