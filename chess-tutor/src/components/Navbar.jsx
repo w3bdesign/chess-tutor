@@ -12,7 +12,7 @@ const Navbar = () => {
             Analysis
           </a>
         </li>
-        <li className="hidden group p-2 rounded hover:bg-slate-400 transition duration-300 ease-in-out hover:text-gray-100">
+        <li className="group p-2 rounded hover:bg-slate-400 transition duration-300 ease-in-out hover:text-gray-100">
           <a
             href="#puzzles"
             className="text-gray-900 group-hover:text-gray-100 transition duration-300 ease-in-out"

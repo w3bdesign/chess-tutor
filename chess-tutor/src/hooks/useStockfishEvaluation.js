@@ -32,6 +32,7 @@ const useStockfishEvaluation = (fen) => {
     queryKey: ["stockfishEvaluation", fen],
     queryFn: () => fetchChessApi(fen),
     enabled: !!fen,
+    refetchInterval: 5000, // Refetch every 5 seconds
   });
 
   return {
