@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import useChessStore from "../stores/useChessStore";
+import { chessboardRef } from "./ChessBoard"; // Pa21e
 
 const ImportComponent = () => {
   const [fenInput, setFenInput] = useState("");
@@ -11,7 +12,7 @@ const ImportComponent = () => {
       chess.load(fenInput);
       setFen(fenInput);
     } else if (pgnInput) {
-      chess.load_pgn(pgnInput);
+      chess.loadPgn(pgnInput); // P687c
       setPgn(pgnInput);
     }
     chessboardRef.current.position(chess.fen());

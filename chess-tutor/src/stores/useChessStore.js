@@ -42,6 +42,12 @@ const useChessStore = create((set, get) => ({
   setFen: (fen) => set({ fen }),
   setPgn: (pgn) => set({ pgn }),
 
+  loadPgn: (pgn) => {
+    const { chess } = get();
+    chess.load_pgn(pgn);
+    set({ pgn });
+  },
+
   resetGame: () => {
     set({
       chess: new Chess(),
