@@ -12,6 +12,7 @@ Chess Tutor is an interactive web application that helps users improve their che
 - Detailed move history with Unicode chess piece symbols
 - Responsive design for various screen sizes
 - Zustand for centralized state management
+- Fallback to Chess API if Stockfish evaluation takes longer than 5 seconds
 
 ## Technologies Used
 
@@ -19,6 +20,7 @@ Chess Tutor is an interactive web application that helps users improve their che
 - [Chessboard2](https://github.com/oakmac/chessboard2) for the chessboard UI
 - [chess.js](https://github.com/jhlywa/chess.js) for chess move validation and game state
 - [Stockfish Online API](https://stockfish.online/) for move evaluation
+- [Chess API](https://chess-api.com/) as a fallback provider
 - [TanStack Query](https://tanstack.com/query/latest) for efficient data fetching and caching
 - [Zustand](https://docs.pmnd.rs/zustand/getting-started/introduction) for centralized state management
 - Tailwind CSS for styling
