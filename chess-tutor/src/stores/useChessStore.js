@@ -43,9 +43,22 @@ const useChessStore = create((set, get) => ({
   setPgn: (pgn) => set({ pgn }),
 
   loadPgn: (pgn) => {
-    const { chess } = get();
+    const { chess, updateMoveHistory } = get();
     chess.load_pgn(pgn);
     set({ pgn });
+    updateMoveHistory();
+  },
+
+  loadFen: (fen) => {
+    const { chess, updateMoveHistory } = get();
+    chess.load(fen);
+    set({ fen });
+    updateMoveHistory();
+  },
+
+  updateMoveHistory: () => {
+    const { chess } = get();
+    set({ moveHistory: chess.history({ verbose: true }) });
   },
 
   resetGame: () => {
