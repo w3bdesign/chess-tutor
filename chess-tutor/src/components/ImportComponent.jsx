@@ -17,7 +17,7 @@ const ImportComponent = () => {
   };
 
   return (
-    <div className="import-component">
+    <div className="mt-6">
       <div className="flex flex-col mb-4">
         <input
           type="text"
