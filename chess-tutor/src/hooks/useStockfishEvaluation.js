@@ -31,8 +31,7 @@ const useStockfishEvaluation = (fen) => {
   const { data, isLoading, error } = useQuery({
     queryKey: ["stockfishEvaluation", fen],
     queryFn: () => fetchChessApi(fen),
-    enabled: !!fen,
-    refetchInterval: 5000, // Refetch every 5 seconds
+    enabled: !!fen
   });
 
   return {
