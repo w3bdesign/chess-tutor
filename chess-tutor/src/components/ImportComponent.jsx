@@ -14,6 +14,9 @@ const ImportComponent = () => {
       chess.load_pgn(pgnInput);
       setPgn(pgnInput);
     }
+    chessboardRef.current.position(chess.fen());
+    setFenInput("");
+    setPgnInput("");
   };
 
   return (
@@ -35,7 +38,11 @@ const ImportComponent = () => {
         />
         <button
           onClick={handleImport}
+<<<<<<< HEAD
           className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed" 
+=======
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+>>>>>>> b6a3767dc3cf54a91201106bfe3c9a941f0c6694
           disabled={!fenInput && !pgnInput}
         >
           Import
