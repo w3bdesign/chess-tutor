@@ -69,6 +69,32 @@ const useStockfishEvaluation = (fen) => {
     }
   };
 
+  const fetchChessApi = async (fen) => {
+    const response = await axios.post(
+      "https://chess-api.com/v1",
+      {
+        fen: fen,
+        depth: 12,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (response.data) {
+      return {
+        evaluation: response.data.eval,
+        mate: response.data.mate,
+        bestMove: response.data.move,
+        continuation: response.data.continuationArr,
+      };
+    } else {
+      throw new Error("Error getting evaluation from Chess API");
+    }
+  };
+
   const { data, isLoading, error } = useQuery({
     queryKey: ["stockfishEvaluation", fen],
     queryFn: async () => {
@@ -76,7 +102,12 @@ const useStockfishEvaluation = (fen) => {
         return await fetchV2(fen);
       } catch (error) {
         console.warn("V2 API failed or timed out, falling back to V1:", error);
-        return await fetchV1(fen);
+        try {
+          return await fetchV1(fen);
+        } catch (error) {
+          console.warn("V1 API failed or timed out, falling back to Chess API:", error);
+          return await fetchChessApi(fen);
+        }
       }
     },
     enabled: !!fen,
