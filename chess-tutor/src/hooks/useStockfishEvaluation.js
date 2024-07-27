@@ -11,6 +11,25 @@ const useStockfishEvaluation = (fen) => {
     ]);
   };
 
+  const fetchLichess = async (fen) => {
+    const response = await fetchWithTimeout(
+      `https://lichess.org/api/cloud-eval?fen=${encodeURIComponent(fen)}&multiPv=3`,
+      {}
+    );
+
+    if (response.data && response.data.pvs) {
+      const bestMove = response.data.pvs[0].moves.split(" ")[0];
+      return {
+        evaluation: response.data.pvs[0].eval,
+        mate: response.data.pvs[0].mate,
+        bestMove: bestMove,
+        continuation: response.data.pvs[0].moves,
+      };
+    } else {
+      throw new Error("Error getting evaluation from Lichess API");
+    }
+  };
+
   const fetchV2 = async (fen) => {
     const response = await fetchWithTimeout(
       "https://stockfish.online/api/s/v2.php",
@@ -73,10 +92,15 @@ const useStockfishEvaluation = (fen) => {
     queryKey: ["stockfishEvaluation", fen],
     queryFn: async () => {
       try {
-        return await fetchV2(fen);
+        return await fetchLichess(fen);
       } catch (error) {
-        console.warn("V2 API failed or timed out, falling back to V1:", error);
-        return await fetchV1(fen);
+        console.warn("Lichess API failed or timed out, falling back to Stockfish:", error);
+        try {
+          return await fetchV2(fen);
+        } catch (error) {
+          console.warn("V2 API failed or timed out, falling back to V1:", error);
+          return await fetchV1(fen);
+        }
       }
     },
     enabled: !!fen,

@@ -18,7 +18,8 @@ Chess Tutor is an interactive web application that helps users improve their che
 - React
 - [Chessboard2](https://github.com/oakmac/chessboard2) for the chessboard UI
 - [chess.js](https://github.com/jhlywa/chess.js) for chess move validation and game state
-- [Stockfish Online API](https://stockfish.online/) for move evaluation
+- [Lichess API](https://lichess.org/api) as the primary provider for move evaluation
+- [Stockfish Online API](https://stockfish.online/) as a fallback provider for move evaluation
 - [TanStack Query](https://tanstack.com/query/latest) for efficient data fetching and caching
 - [Zustand](https://docs.pmnd.rs/zustand/getting-started/introduction) for centralized state management
 - Tailwind CSS for styling
@@ -69,6 +70,7 @@ Chess Tutor is an interactive web application that helps users improve their che
 3. The application will display the current evaluation and the best move suggestion.
 4. The move history is updated after each move, showing Unicode chess piece symbols.
 5. Invalid moves will display warning messages to guide the user.
+6. The application uses the Lichess API as the primary provider for move evaluation. If the Lichess API fails or times out, the Stockfish API is used as a fallback.
 
 ## License
 
