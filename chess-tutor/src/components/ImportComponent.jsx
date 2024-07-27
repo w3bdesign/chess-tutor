@@ -5,17 +5,18 @@ import { chessboardRef } from "./ChessBoard";
 const ImportComponent = () => {
   const [fenInput, setFenInput] = useState("");
   const [pgnInput, setPgnInput] = useState("");
-  const { chess, setFen, setPgn } = useChessStore();
+  const { chess, setFen, setPgn, updateMoveHistory } = useChessStore();
 
   const handleImport = () => {
     if (fenInput) {
       chess.load(fenInput);
       setFen(fenInput);
     } else if (pgnInput) {
-      chess.loadPgn(pgnInput); // P687c
+      chess.loadPgn(pgnInput);
       setPgn(pgnInput);
     }
     chessboardRef.current.position(chess.fen());
+    updateMoveHistory();
     setFenInput("");
     setPgnInput("");
   };
