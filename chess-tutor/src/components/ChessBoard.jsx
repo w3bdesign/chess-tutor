@@ -159,28 +159,6 @@ function ChessBoard() {
         className="shadow border bg-white rounded p-4 w-full min-w-[40rem] min-h-[35rem]"
       ></div>
       <CapturedPieces capturedPieces={capturedPieces} />
-      <div className="mt-4">
-        <input
-          type="text"
-          placeholder="Enter FEN"
-          value={fenInput}
-          onChange={(e) => setFenInput(e.target.value)}
-          className="border p-2 mr-2"
-        />
-        <input
-          type="text"
-          placeholder="Enter PGN"
-          value={pgnInput}
-          onChange={(e) => setPgnInput(e.target.value)}
-          className="border p-2 mr-2"
-        />
-        <button
-          onClick={handleImport}
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-        >
-          Import
-        </button>
-      </div>
     </>
   );
 }
