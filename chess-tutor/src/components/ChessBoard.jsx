@@ -109,6 +109,10 @@ function ChessBoard() {
   }, [chess, makeMove]);
 
   useEffect(() => {
+    chessboardRef.current.position(chess.fen());
+  }, [chess.fen()]);
+
+  useEffect(() => {
     if (evaluationData && evaluationData.bestMove) {
       const from = evaluationData.bestMove.slice(0, 2);
       const to = evaluationData.bestMove.slice(2, 4);
