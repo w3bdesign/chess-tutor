@@ -13,8 +13,6 @@ function ChessBoard() {
     white: [],
     black: [],
   });
-  const [fenInput, setFenInput] = useState("");
-  const [pgnInput, setPgnInput] = useState("");
 
   const {
     chess,
@@ -133,16 +131,6 @@ function ChessBoard() {
     if (!data) return "";
     if (data.mate !== null) return `Mate in ${data.mate}`;
     return `Evaluation: ${data.evaluation.toFixed(2)}`;
-  };
-
-  const handleImport = () => {
-    if (fenInput) {
-      chess.load(fenInput);
-    } else if (pgnInput) {
-      chess.load_pgn(pgnInput);
-    }
-    chessboardRef.current.position(chess.fen());
-    updateCapturedPieces();
   };
 
   return (

@@ -8,6 +8,8 @@ const useChessStore = create((set, get) => ({
   evaluationData: null,
   isLoading: false,
   error: null,
+  fen: "",
+  pgn: "",
 
   makeMove: (from, to) => {
     const { chess } = get();
@@ -37,6 +39,9 @@ const useChessStore = create((set, get) => ({
   setIsLoading: (isLoading) => set({ isLoading }),
   setError: (error) => set({ error }),
 
+  setFen: (fen) => set({ fen }),
+  setPgn: (pgn) => set({ pgn }),
+
   resetGame: () => {
     set({
       chess: new Chess(),
@@ -45,6 +50,8 @@ const useChessStore = create((set, get) => ({
       evaluationData: null,
       isLoading: false,
       error: null,
+      fen: "",
+      pgn: "",
     });
   },
 }));
