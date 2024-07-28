@@ -70,7 +70,7 @@ const PuzzlePage = () => {
   };
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto">
       <div className="shadow border bg-white rounded w-full mb-4">
         <h1 className="text-2xl font-bold p-4">Chess Puzzle</h1>
       </div>
