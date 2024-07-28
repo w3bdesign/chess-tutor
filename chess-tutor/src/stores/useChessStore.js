@@ -10,6 +10,7 @@ const useChessStore = create((set, get) => ({
   error: null,
   fen: "",
   pgn: "",
+  puzzleMode: false,
 
   makeMove: (from, to) => {
     const { chess } = get();
@@ -73,6 +74,8 @@ const useChessStore = create((set, get) => ({
       pgn: "",
     });
   },
+
+  setPuzzleMode: (mode) => set({ puzzleMode: mode }),
 }));
 
 function getWarningMessage(chess, from, to) {
