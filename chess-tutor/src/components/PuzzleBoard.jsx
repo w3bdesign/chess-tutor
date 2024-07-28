@@ -109,6 +109,10 @@ function PuzzleBoard() {
     };
   }, [chess, makeMove]);
 
+  const getTurnText = () => {
+    return chess.turn() === "w" ? "White to move" : "Black to move";
+  };
+
   useEffect(() => {
     chessboardRef.current.position(chess.fen());
   }, [chess.fen()]);
@@ -118,11 +122,13 @@ function PuzzleBoard() {
       {warningMessage && (
         <p className="text-red-500 p-2 mb-2 font-semibold">{warningMessage}</p>
       )}
+      <p className="text-lg p-4 mt-2 mb-4 font-semibold shadow border bg-white rounded w-full">
+        {getTurnText()}
+      </p>
       <div
         id="myBoard"
         className="shadow border bg-white rounded p-4 w-full min-w-[40rem] min-h-[35rem]"
-      ></div>
-      <CapturedPieces capturedPieces={capturedPieces} />
+      ></div>     
     </>
   );
 }
