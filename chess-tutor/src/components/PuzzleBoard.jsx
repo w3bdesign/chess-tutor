@@ -32,7 +32,7 @@ function PuzzleBoard({ onMove, puzzle, onHint }) {
         const moveSuccessful = onMove({ from: source, to: target });
         if (!moveSuccessful) return "snapback";
         chessboardRef.current.position(chess.fen());
-       
+
         if (hintArrow) {
           chessboardRef.current.removeArrow(hintArrow);
           setHintArrow(null);
@@ -41,7 +41,6 @@ function PuzzleBoard({ onMove, puzzle, onHint }) {
     };
 
     chessboardRef.current = Chessboard2("myBoard", boardConfig);
-   
 
     return () => {
       if (chessboardRef.current) {
