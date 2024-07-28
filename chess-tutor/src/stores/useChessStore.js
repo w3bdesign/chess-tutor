@@ -16,6 +16,7 @@ const useChessStore = create((set, get) => ({
     const { chess } = get();
     try {
       const move = chess.move({ from, to, promotion: "q" });
+
       if (move === null) {
         set({ warningMessage: getWarningMessage(chess, from, to) });
         return false;

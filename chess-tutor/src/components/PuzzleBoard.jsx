@@ -1,58 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Chessboard2 } from "@chrisoakman/chessboard2/dist/chessboard2.min.mjs";
 
-import CapturedPieces from "./CapturedPieces";
-
 import useChessStore from "../stores/useChessStore";
 
 export const chessboardRef = { current: null };
 
 function PuzzleBoard({ onMove, puzzle, onHint }) {
-  const [capturedPieces, setCapturedPieces] = useState({
-    white: [],
-    black: [],
-  });
+  //const chessboardRef = { current: null };
+
   const [hintArrow, setHintArrow] = useState(null);
   const [boardOrientation, setBoardOrientation] = useState("white");
 
-  const { chess, makeMove, warningMessage } = useChessStore();
-
-  const updateCapturedPieces = () => {
-    const captured = { white: [], black: [] };
-    const initialPieces = {
-      p: 8,
-      n: 2,
-      b: 2,
-      r: 2,
-      q: 1,
-      P: 8,
-      N: 2,
-      B: 2,
-      R: 2,
-      Q: 1,
-    };
-
-    const currentPieces = chess
-      .board()
-      .flat()
-      .filter(Boolean)
-      .reduce((acc, { type, color }) => {
-        const pieceKey =
-          color === "w" ? type.toUpperCase() : type.toLowerCase();
-        acc[pieceKey] = (acc[pieceKey] || 0) + 1;
-        return acc;
-      }, {});
-
-    for (const [piece, count] of Object.entries(initialPieces)) {
-      const diff = count - (currentPieces[piece] || 0);
-      if (diff > 0) {
-        const color = piece === piece.toUpperCase() ? "black" : "white";
-        captured[color].push(...Array(diff).fill(piece));
-      }
-    }
-
-    setCapturedPieces(captured);
-  };
+  const { chess, warningMessage } = useChessStore();
 
   useEffect(() => {
     if (puzzle) {
@@ -73,7 +32,7 @@ function PuzzleBoard({ onMove, puzzle, onHint }) {
         const moveSuccessful = onMove({ from: source, to: target });
         if (!moveSuccessful) return "snapback";
         chessboardRef.current.position(chess.fen());
-        updateCapturedPieces();
+       
         if (hintArrow) {
           chessboardRef.current.removeArrow(hintArrow);
           setHintArrow(null);
@@ -82,7 +41,7 @@ function PuzzleBoard({ onMove, puzzle, onHint }) {
     };
 
     chessboardRef.current = Chessboard2("myBoard", boardConfig);
-    updateCapturedPieces();
+   
 
     return () => {
       if (chessboardRef.current) {
