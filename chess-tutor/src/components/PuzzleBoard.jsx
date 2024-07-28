@@ -7,11 +7,12 @@ import useChessStore from "../stores/useChessStore";
 
 export const chessboardRef = { current: null };
 
-function PuzzleBoard({ onMove, puzzle }) {
+function PuzzleBoard({ onMove, puzzle, onHint }) {
   const [capturedPieces, setCapturedPieces] = useState({
     white: [],
     black: [],
   });
+  const [hintArrow, setHintArrow] = useState(null);
 
   const { chess, makeMove, warningMessage } = useChessStore();
 
@@ -51,7 +52,6 @@ function PuzzleBoard({ onMove, puzzle }) {
 
     setCapturedPieces(captured);
   };
-
   useEffect(() => {
     const boardConfig = {
       draggable: true,
@@ -62,6 +62,10 @@ function PuzzleBoard({ onMove, puzzle }) {
         if (!moveSuccessful) return "snapback";
         chessboardRef.current.position(chess.fen());
         updateCapturedPieces();
+        if (hintArrow) {
+          chessboardRef.current.removeArrow(hintArrow);
+          setHintArrow(null);
+        }
       },
     };
 
@@ -83,6 +87,29 @@ function PuzzleBoard({ onMove, puzzle }) {
     return chess.turn() === "w" ? "White to move" : "Black to move";
   };
 
+  const handleHint = () => {
+    if (puzzle && puzzle.solution.length > 0) {
+      const hintMove = puzzle.solution[0];
+      const from = hintMove.slice(0, 2);
+      const to = hintMove.slice(2, 4);
+
+      if (hintArrow) {
+        chessboardRef.current.removeArrow(hintArrow);
+      }
+
+      const newHintArrow = chessboardRef.current.addArrow({
+        color: "#007bff",
+        start: from,
+        end: to,
+        size: "medium",
+        opacity: "60%",
+      });
+
+      setHintArrow(newHintArrow);
+      onHint();
+    }
+  };
+
   return (
     <>
       {warningMessage && (
@@ -95,6 +122,12 @@ function PuzzleBoard({ onMove, puzzle }) {
         id="myBoard"
         className="shadow border bg-white rounded p-4 w-full min-w-[40rem] min-h-[35rem]"
       ></div>
+      <button
+        onClick={handleHint}
+        className="mt-4 bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded mr-6"
+      >
+        Hint
+      </button>
     </>
   );
 }

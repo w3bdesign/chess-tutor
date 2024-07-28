@@ -9,6 +9,7 @@ const PuzzlePage = () => {
   const [puzzle, setPuzzle] = useState(null);
   const [isCorrect, setIsCorrect] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [hintUsed, setHintUsed] = useState(false);
   const { chess, makeMove, resetGame, loadFen } = useChessStore();
 
   const loadPuzzle = async () => {
@@ -19,6 +20,7 @@ const PuzzlePage = () => {
       resetGame();
       loadFen(newPuzzle.fen);
       setIsCorrect(null);
+      setHintUsed(false);
     } catch (error) {
       console.error("Error loading puzzle:", error);
     } finally {
@@ -63,6 +65,10 @@ const PuzzlePage = () => {
     return true;
   };
 
+  const handleHint = () => {
+    setHintUsed(true);
+  };
+
   return (
     <div className="container mx-auto p-4">
       <div className="shadow border bg-white rounded w-full mb-4">
@@ -74,7 +80,11 @@ const PuzzlePage = () => {
             <div className="text-center">Loading puzzle...</div>
           ) : (
             <>
-              <PuzzleBoard onMove={handleMove} puzzle={puzzle} />
+              <PuzzleBoard
+                onMove={handleMove}
+                puzzle={puzzle}
+                onHint={handleHint}
+              />
               {isCorrect !== null && (
                 <div
                   className={`mt-4 p-4 rounded ${
@@ -82,7 +92,9 @@ const PuzzlePage = () => {
                   }`}
                 >
                   {isCorrect
-                    ? "Correct! Loading next puzzle..."
+                    ? `Correct! ${
+                        hintUsed ? "Hint was used. " : ""
+                      }Loading next puzzle...`
                     : "Incorrect. Try again!"}
                 </div>
               )}
