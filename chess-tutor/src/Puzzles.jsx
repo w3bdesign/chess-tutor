@@ -33,7 +33,7 @@ const PuzzlePage = () => {
   }, []);
 
   const handleMove = (move) => {
-    if (!puzzle) return false;
+    if (!puzzle || !puzzle.solution) return false;
 
     const result = makeMove(move.from, move.to);
     if (!result) return false;
@@ -41,8 +41,10 @@ const PuzzlePage = () => {
     const userMove = `${move.from}${move.to}`;
     if (userMove === puzzle.solution[0]) {
       // Correct move
-      puzzle.solution.shift();
-      if (puzzle.solution.length === 0) {
+      const newSolution = [...puzzle.solution.slice(1)];
+      setPuzzle((prevPuzzle) => ({ ...prevPuzzle, solution: newSolution }));
+
+      if (newSolution.length === 0) {
         setIsCorrect(true);
         setTimeout(() => {
           loadPuzzle();
@@ -50,8 +52,12 @@ const PuzzlePage = () => {
       } else {
         // Make opponent's move automatically
         setTimeout(() => {
-          const opponentMove = puzzle.solution.shift();
+          const opponentMove = newSolution[0];
           makeMove(opponentMove.slice(0, 2), opponentMove.slice(2, 4));
+          setPuzzle((prevPuzzle) => ({
+            ...prevPuzzle,
+            solution: newSolution.slice(1),
+          }));
         }, 500);
       }
     } else {
