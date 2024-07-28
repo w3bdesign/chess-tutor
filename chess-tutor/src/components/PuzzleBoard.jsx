@@ -13,7 +13,7 @@ function PuzzleBoard({ onMove, puzzle, onHint }) {
     black: [],
   });
   const [hintArrow, setHintArrow] = useState(null);
-  const [boardOrientation, setBoardOrientation] = useState('white');
+  const [boardOrientation, setBoardOrientation] = useState("white");
 
   const { chess, makeMove, warningMessage } = useChessStore();
 
@@ -57,7 +57,7 @@ function PuzzleBoard({ onMove, puzzle, onHint }) {
   useEffect(() => {
     if (puzzle) {
       // Determine the orientation based on whose turn it is in the puzzle's initial position
-      const orientation = puzzle.fen.split(' ')[1] === 'w' ? 'white' : 'black';
+      const orientation = puzzle.fen.split(" ")[1] === "w" ? "white" : "black";
       setBoardOrientation(orientation);
     }
   }, [puzzle]);
@@ -68,6 +68,7 @@ function PuzzleBoard({ onMove, puzzle, onHint }) {
       position: chess.fen(),
       showNotation: true,
       orientation: boardOrientation,
+      moveSpeed: "slow",
       onDrop: ({ source, target }) => {
         const moveSuccessful = onMove({ from: source, to: target });
         if (!moveSuccessful) return "snapback";
