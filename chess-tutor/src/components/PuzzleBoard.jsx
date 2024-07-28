@@ -4,47 +4,16 @@ import { Chessboard2 } from "@chrisoakman/chessboard2/dist/chessboard2.min.mjs";
 import CapturedPieces from "./CapturedPieces";
 
 import useChessStore from "../stores/useChessStore";
-import useStockfishEvaluation from "../hooks/useStockfishEvaluation";
 
 export const chessboardRef = { current: null };
 
-function PuzzleBoard() {
-  const bestMoveArrowRef = useRef(null);
+function PuzzleBoard({ onMove, puzzle }) {
   const [capturedPieces, setCapturedPieces] = useState({
     white: [],
     black: [],
   });
 
-  const {
-    chess,
-    makeMove,
-    warningMessage,
-    evaluationData,
-    isLoading,
-    error,
-    setEvaluationData,
-    setIsLoading,
-    setError,
-  } = useChessStore();
-
-  const {
-    data,
-    isLoading: evalIsLoading,
-    error: evalError,
-  } = useStockfishEvaluation(chess.fen());
-
-  useEffect(() => {
-    setEvaluationData(data);
-    setIsLoading(evalIsLoading);
-    setError(evalError);
-  }, [
-    data,
-    evalIsLoading,
-    evalError,
-    setEvaluationData,
-    setIsLoading,
-    setError,
-  ]);
+  const { chess, makeMove, warningMessage } = useChessStore();
 
   const updateCapturedPieces = () => {
     const captured = { white: [], black: [] };
@@ -89,13 +58,10 @@ function PuzzleBoard() {
       position: chess.fen(),
       showNotation: true,
       onDrop: ({ source, target }) => {
-        const moveSuccessful = makeMove(source, target);
+        const moveSuccessful = onMove({ from: source, to: target });
         if (!moveSuccessful) return "snapback";
         chessboardRef.current.position(chess.fen());
         updateCapturedPieces();
-        // Clear previous arrows
-        chessboardRef.current.clearArrows();
-        bestMoveArrowRef.current = null;
       },
     };
 
@@ -107,15 +73,15 @@ function PuzzleBoard() {
         //chessboardRef.current.destroy();
       }
     };
-  }, [chess, makeMove]);
-
-  const getTurnText = () => {
-    return chess.turn() === "w" ? "White to move" : "Black to move";
-  };
+  }, [chess, onMove]);
 
   useEffect(() => {
     chessboardRef.current.position(chess.fen());
   }, [chess.fen()]);
+
+  const getTurnText = () => {
+    return chess.turn() === "w" ? "White to move" : "Black to move";
+  };
 
   return (
     <>
@@ -128,7 +94,7 @@ function PuzzleBoard() {
       <div
         id="myBoard"
         className="shadow border bg-white rounded p-4 w-full min-w-[40rem] min-h-[35rem]"
-      ></div>     
+      ></div>
     </>
   );
 }
