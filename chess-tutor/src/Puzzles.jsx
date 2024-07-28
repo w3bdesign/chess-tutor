@@ -10,7 +10,7 @@ const PuzzlePage = () => {
   const [isCorrect, setIsCorrect] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hintUsed, setHintUsed] = useState(false);
-  const { chess, makeMove, resetGame, loadFen } = useChessStore();
+  const { makeMove, resetGame, loadFen } = useChessStore();
 
   const loadPuzzle = async () => {
     setIsLoading(true);
