@@ -14,6 +14,7 @@ export const fetchPuzzle = async () => {
         count: '1'
       },
       headers: {
+        // TODO: Move this to /api endpoint
         'x-rapidapi-key': '',
         'x-rapidapi-host': 'chess-puzzles.p.rapidapi.com'
       }
