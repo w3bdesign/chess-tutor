@@ -21,7 +21,6 @@ const PuzzlePage = () => {
       setIsCorrect(null);
     } catch (error) {
       console.error("Error loading puzzle:", error);
-      // You might want to show an error message to the user here
     } finally {
       setIsLoading(false);
     }
@@ -32,10 +31,10 @@ const PuzzlePage = () => {
   }, []);
 
   const handleMove = (move) => {
-    if (!puzzle) return;
+    if (!puzzle) return false;
 
     const result = makeMove(move.from, move.to);
-    if (!result) return;
+    if (!result) return false;
 
     const userMove = `${move.from}${move.to}`;
     if (userMove === puzzle.solution[0]) {
@@ -47,9 +46,11 @@ const PuzzlePage = () => {
           loadPuzzle();
         }, 2000);
       } else {
-        // Make opponent's move
-        const opponentMove = puzzle.solution.shift();
-        makeMove(opponentMove.slice(0, 2), opponentMove.slice(2, 4));
+        // Make opponent's move automatically
+        setTimeout(() => {
+          const opponentMove = puzzle.solution.shift();
+          makeMove(opponentMove.slice(0, 2), opponentMove.slice(2, 4));
+        }, 500);
       }
     } else {
       setIsCorrect(false);
@@ -58,6 +59,8 @@ const PuzzlePage = () => {
         setIsCorrect(null);
       }, 2000);
     }
+
+    return true;
   };
 
   return (
@@ -71,7 +74,7 @@ const PuzzlePage = () => {
             <div className="text-center">Loading puzzle...</div>
           ) : (
             <>
-              <PuzzleBoard onMove={handleMove} />
+              <PuzzleBoard onMove={handleMove} puzzle={puzzle} />
               {isCorrect !== null && (
                 <div
                   className={`mt-4 p-4 rounded ${
@@ -87,7 +90,7 @@ const PuzzlePage = () => {
           )}
           <button
             onClick={loadPuzzle}
-            className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-4"
+            className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
             disabled={isLoading}
           >
             {isLoading ? "Loading..." : "New Puzzle"}
