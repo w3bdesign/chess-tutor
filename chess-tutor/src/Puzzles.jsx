@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import ChessBoard from "./components/ChessBoard";
+import PuzzleBoard from "./components/PuzzleBoard";
 import MoveHistory from "./components/MoveHistory";
 
 import useChessStore from "./stores/useChessStore";
@@ -9,14 +9,7 @@ const PuzzlePage = () => {
   const [puzzle, setPuzzle] = useState(null);
   const [isCorrect, setIsCorrect] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const {
-    chess,
-    makeMove,
-    resetGame,
-    loadFen,
-    stockfishEnabled,
-    setStockfishEnabled,
-  } = useChessStore();
+  const { chess, makeMove, resetGame, loadFen } = useChessStore();
 
   const loadPuzzle = async () => {
     setIsLoading(true);
@@ -67,10 +60,6 @@ const PuzzlePage = () => {
     }
   };
 
-  const toggleStockfish = () => {
-    setStockfishEnabled(!stockfishEnabled);
-  };
-
   return (
     <div className="container mx-auto p-4">
       <div className="shadow border bg-white rounded w-full mb-4">
@@ -82,7 +71,7 @@ const PuzzlePage = () => {
             <div className="text-center">Loading puzzle...</div>
           ) : (
             <>
-              <ChessBoard onMove={handleMove} puzzleMode={true} />
+              <PuzzleBoard onMove={handleMove} />
               {isCorrect !== null && (
                 <div
                   className={`mt-4 p-4 rounded ${
@@ -102,16 +91,6 @@ const PuzzlePage = () => {
             disabled={isLoading}
           >
             {isLoading ? "Loading..." : "New Puzzle"}
-          </button>
-          <button
-            onClick={toggleStockfish}
-            className={`mt-4 ${
-              stockfishEnabled
-                ? "bg-red-500 hover:bg-red-700"
-                : "bg-green-500 hover:bg-green-700"
-            } text-white font-bold py-2 px-4 rounded`}
-          >
-            {stockfishEnabled ? "Disable Stockfish" : "Enable Stockfish"}
           </button>
         </div>
         <div className="lg:w-1/3">
