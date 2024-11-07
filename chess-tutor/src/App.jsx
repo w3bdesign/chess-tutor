@@ -10,7 +10,7 @@ import MoveHistory from "./components/MoveHistory";
 import Navbar from "./components/Navbar";
 import PuzzlePage from "./Puzzles";
 
-import useChessStore from "./stores/useChessStore";
+import { useChessStore } from "./stores/useChessStore";
 
 import "./App.css";
 import "@chrisoakman/chessboard2/dist/chessboard2.min.css";
