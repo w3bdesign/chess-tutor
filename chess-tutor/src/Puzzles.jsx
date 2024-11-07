@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import PuzzleBoard from "./components/PuzzleBoard";
 import MoveHistory from "./components/MoveHistory";
 
-import useChessStore from "./stores/useChessStore";
+import { useChessStore } from "./stores/useChessStore";
 import { fetchPuzzle } from "./services/puzzleService";
 
 const PuzzlePage = () => {
