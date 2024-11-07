@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import useChessStore from "../stores/useChessStore";
+import { useChessStore } from "../stores/useChessStore";
 import { chessboardRef } from "./ChessBoard";
 
 const ImportComponent = () => {
