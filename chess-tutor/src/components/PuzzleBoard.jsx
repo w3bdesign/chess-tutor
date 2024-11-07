@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Chessboard2 } from "@chrisoakman/chessboard2/dist/chessboard2.min.mjs";
 
-import useChessStore from "../stores/useChessStore";
+import { useChessStore } from "../stores/useChessStore";
 
 export const chessboardRef = { current: null };
 
