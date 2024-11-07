@@ -1,6 +1,6 @@
 import React from "react";
 
-import useChessStore from "../stores/useChessStore";
+import { useChessStore } from "../stores/useChessStore";
 
 /**
  * Returns the corresponding Unicode character for a given chess piece.

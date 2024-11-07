@@ -3,7 +3,7 @@ import { Chessboard2 } from "@chrisoakman/chessboard2/dist/chessboard2.min.mjs";
 
 import CapturedPieces from "./CapturedPieces";
 
-import useChessStore from "../stores/useChessStore";
+import { useChessStore } from "../stores/useChessStore";
 import useStockfishEvaluation from "../hooks/useStockfishEvaluation";
 
 export const chessboardRef = { current: null };

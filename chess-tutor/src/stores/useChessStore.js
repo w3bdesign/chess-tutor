@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { Chess } from "chess.js";
 
-const useChessStore = create((set, get) => ({
+export const useChessStore = create((set, get) => ({
   chess: new Chess(),
   moveHistory: [],
   warningMessage: null,
@@ -88,5 +88,3 @@ function getWarningMessage(chess, from, to) {
     return "Cannot capture your own piece.";
   return `Invalid move for ${piece.type}. Please try again.`;
 }
-
-export default useChessStore;
