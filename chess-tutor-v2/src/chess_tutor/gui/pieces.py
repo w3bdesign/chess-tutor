@@ -38,6 +38,19 @@ _FONT_CANDIDATES = (
 )
 
 
+def load_glyph_font(size: int) -> pygame.font.Font:
+    """Return a font that carries the Unicode chess glyphs at ``size`` px.
+
+    Shared by the board renderer and the side panel (captured material) so that
+    chess glyphs render consistently instead of as missing-glyph boxes.
+    """
+    for name in _FONT_CANDIDATES:
+        match = pygame.font.match_font(name)
+        if match:
+            return pygame.font.Font(match, size)
+    return pygame.font.SysFont(None, size)
+
+
 class PieceRenderer:
     """Rasterises and caches piece glyphs for a given square size."""
 
@@ -49,11 +62,7 @@ class PieceRenderer:
 
     @staticmethod
     def _load_font(size: int) -> pygame.font.Font:
-        for name in _FONT_CANDIDATES:
-            match = pygame.font.match_font(name)
-            if match:
-                return pygame.font.Font(match, size)
-        return pygame.font.SysFont(None, size)
+        return load_glyph_font(size)
 
     def surface_for(self, piece: chess.Piece) -> pygame.Surface:
         """Return a cached, colour-tinted surface for ``piece``."""
