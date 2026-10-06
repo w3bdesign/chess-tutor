@@ -129,22 +129,77 @@ See [`.env.example`](.env.example) for the annotated source of truth.
 
 ## Usage (CLI)
 
-> **Status: forthcoming.** The CLI entry point `chess-tutor`
-> (`chess_tutor.cli.main:app`, a Typer app) is declared in
-> [`pyproject.toml`](pyproject.toml) but not yet implemented. Once available it
-> will let you play a full game, render the board, pick your color and search
-> depth, see the candidate-move comparison and "why this move" narrative after
-> each move, ask "why not `<move>`?", and resign / start a new game.
-
-Planned invocation:
+The `chess-tutor` entry point (`chess_tutor.cli.main:app`, a Typer app) plays a
+full game in your terminal with coaching after every move.
 
 ```bash
 # With uv
-python -m uv run chess-tutor
+python -m uv run chess-tutor play
 
 # Or, inside an activated venv
-chess-tutor
+chess-tutor play
 ```
+
+Options:
+
+```bash
+chess-tutor play --color black     # play Black (also: white | random)
+chess-tutor play --depth 16        # override CHESS_API_DEPTH for this game
+chess-tutor play --fen "<FEN>"     # start from a custom position
+```
+
+In-game commands (type at the prompt): a move in UCI/SAN (e.g. `e2e4` or `Nf3`),
+`hint` for the coach's recommendation, `why not <move>` to compare an alternative,
+`help`, and `resign`. After each move you see the engine's candidate-move
+comparison table and the coach's "why this move" narrative.
+
+---
+
+## Usage (GUI)
+
+An optional **Pygame desktop board** using the chess.com default "Green" theme.
+It is a thin front-end over the same hybrid core — no chess rules or move
+selection are reimplemented.
+
+Install the `gui` extra, then launch:
+
+```bash
+# With uv
+python -m uv run --extra gui chess-tutor-gui
+
+# Or, inside an activated venv (install the extra once)
+python -m pip install -e ".[gui]"
+chess-tutor-gui
+```
+
+> If your `.venv` was created by `uv` without `pip`, bootstrap it first:
+> `python -m ensurepip --upgrade` (use the venv's interpreter), then
+> `python -m pip install -e ".[gui]"`.
+
+Controls:
+
+| Input                    | Action                                                           |
+| ------------------------ | --------------------------------------------------------------- |
+| **Left-click**           | Select a piece, then click a highlighted square to move.        |
+| **Right-click**          | On a legal target: ask "why not that move?" (free — no LLM).    |
+| **F**                    | Flip the board perspective.                                     |
+| **N**                    | Start a new game.                                               |
+| **Esc**                  | Clear the current selection.                                    |
+
+You play one side; the tutor plays the other on a background thread (the window
+stays responsive while it thinks). The side panel shows the status, the engine's
+candidate-move comparison, the coach's narrative for the move just played, and
+captured material.
+
+### Cost model (why it stays cheap)
+
+The hosted chess-api.com engine is **free**, but LLM calls cost tokens, so the
+GUI is deliberately frugal:
+
+- **Exactly one LLM call per tutor move** — the coached move plus its reasoning.
+- **Zero LLM calls for your moves or for "why not?" exploration** — those use
+  only free engine analysis, and results are cached per position (FEN) so
+  repeated queries on the same position don't even re-hit the free API.
 
 ---
 
