@@ -38,3 +38,8 @@ target-version = "py310"
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+# Exclude opt-in live network tests by default; run them with: pytest -m live
+addopts = "-m 'not live'"
+markers = [
+    "live: tests that hit the real chess-api.com service (requires network).",
+]
