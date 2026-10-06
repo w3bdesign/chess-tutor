@@ -1,11 +1,19 @@
-"""OpenAI-compatible LLM client: the "brain" that proposes a move + reasoning.
+"""OpenAI-compatible LLM client: the "brain" that explains and recommends moves.
 
 The LLM never invents moves in a vacuum. It is always *grounded* in the engine's
 vetted candidate lines (top-N MultiPV from the :class:`AnalysisProvider`): we hand
 it the position plus each candidate's evaluation and principal variation, and ask
-it to pick exactly one of those moves and explain why. The chess engine still has
-the final say -- the hybrid core (see ``core.py``) may veto a blunder -- so the
-LLM's job is selection + teaching, not raw calculation.
+it -- in a single call -- to do two things:
+
+1. Recommend exactly one of those candidate moves (the chess engine still has the
+   final say; the hybrid core may veto a blunder), and
+2. Comment on *every* candidate: why the recommended move is best, and **why not**
+   each alternative (its trade-offs).
+
+That comparison -- "why this move, why not that one" -- is the whole point: a learner
+improves by understanding the differences between the options, not by being handed a
+single move with one blurb. We deliberately keep this to a single LLM round-trip per
+position (cost/latency), while still asking for the full comparative explanation.
 
 Design notes
 ------------
@@ -24,23 +32,28 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from ..config import Settings
 from .models import Analysis, CandidateLine
 
 _SYSTEM_PROMPT = (
-    "You are a strong, encouraging chess coach. You are given a position and a "
-    "short list of candidate moves that a chess engine has already vetted as the "
-    "best options, each with its evaluation and the principal variation that "
-    "follows. Your job is to choose exactly ONE of those candidate moves and "
-    "explain, in clear and instructive language, why it is a good practical "
-    "choice. Base every claim on the evaluations and variations you are given; "
-    "do not invent lines or moves that are not listed. "
-    'Reply with ONLY a JSON object of the form '
-    '{"move": "<uci>", "reasoning": "<one short paragraph>"}, where <uci> is the '
-    "UCI string of the candidate you pick (for example e2e4 or g8f6)."
+    "You are a strong, encouraging chess coach helping a student improve. You are "
+    "given a position and a short list of candidate moves that a chess engine has "
+    "already vetted as the best options, each with its evaluation and the principal "
+    "variation that follows. Your job is to TEACH by comparison:\n"
+    "1. Recommend exactly ONE of the candidate moves.\n"
+    "2. Comment on EVERY candidate move in the list: explain why the recommended "
+    "move is best, and for each other candidate explain why it is worse -- the "
+    "trade-off, the drawback, or what the opponent gets (the 'why not this one?').\n"
+    "Base every claim on the evaluations and variations you are given; do not invent "
+    "lines or moves that are not listed. Keep each comment concise and instructive.\n"
+    "Reply with ONLY a JSON object of this exact shape:\n"
+    '{"recommended": "<uci>", "summary": "<one short paragraph on the pick>", '
+    '"comparisons": [{"move": "<uci>", "comment": "<why this / why not>"}, ...]}\n'
+    "Include one comparisons entry for every candidate you were given, using each "
+    "candidate's uci value (for example e2e4 or g8f6)."
 )
 
 # Matches a leading ```json / ``` fence and a trailing ``` fence.
@@ -53,23 +66,45 @@ class LLMError(RuntimeError):
 
 
 @dataclass(frozen=True)
+class CandidateComment:
+    """The LLM's commentary on one candidate move (why this / why not)."""
+
+    move_uci: str
+    comment: str
+
+
+@dataclass(frozen=True)
 class MoveProposal:
-    """The LLM's grounded suggestion for a single position.
+    """The LLM's grounded, comparative output for a single position.
 
     Attributes:
-        move_uci: The move the LLM chose, in UCI form (lower-cased).
-        reasoning: The LLM's natural-language justification.
+        move_uci: The recommended move, in UCI form (lower-cased).
+        summary: Overall narrative justifying the recommended move.
+        comments: Per-candidate commentary (why this / why not), one entry per
+            candidate the LLM addressed, in the order returned.
         grounded: ``True`` when ``move_uci`` matched one of the engine candidates
             that were offered. When ``False``, the hybrid core should treat the
-            suggestion with suspicion (and will typically fall back to the
+            recommendation with suspicion (and will typically fall back to the
             engine's best move).
         raw: The raw model text, kept for debugging/teaching transparency.
     """
 
     move_uci: str
-    reasoning: str
+    summary: str
+    comments: list[CandidateComment] = field(default_factory=list)
     grounded: bool = True
     raw: str | None = None
+
+    def comment_for(self, move_uci: str) -> str | None:
+        """Return the LLM's comment for ``move_uci`` (case-insensitive), if any.
+
+        Powers the CLI's "why not <move>?" explainer.
+        """
+        target = move_uci.strip().lower()
+        for c in self.comments:
+            if c.move_uci.lower() == target:
+                return c.comment
+        return None
 
 
 def side_to_move_name(fen: str) -> str:
@@ -89,7 +124,7 @@ def _format_candidate(line: CandidateLine) -> str:
 
 
 def build_move_prompt(fen: str, analysis: Analysis) -> str:
-    """Build the grounded user prompt from a position and its engine analysis.
+    """Build the grounded, comparison-oriented prompt from a position + analysis.
 
     Pure function (no network) so it can be unit tested directly.
     """
@@ -104,9 +139,10 @@ def build_move_prompt(fen: str, analysis: Analysis) -> str:
         "Evaluations are in pawns from the mover's perspective "
         "(positive = better for the side to move); #N means mate in N:\n"
         f"{candidates_block}\n\n"
-        "Choose exactly one of the candidate moves above (use its uci value) and "
-        "explain why it is a good choice for the side to move. "
-        'Respond with only the JSON object: {"move": "<uci>", "reasoning": "<text>"}.'
+        "Recommend exactly one of the candidate moves above, then comment on EVERY "
+        "candidate so the student understands the comparison: why your pick is best "
+        "and why each alternative is worse. Use each candidate's uci value. "
+        "Respond with only the JSON object described in the system message."
     )
 
 
@@ -136,75 +172,109 @@ def _extract_json_object(text: str) -> dict[str, Any] | None:
     return None
 
 
+def _resolve_candidate(token: str, analysis: Analysis) -> CandidateLine | None:
+    """Resolve a move token (UCI or SAN, any case) to a vetted candidate."""
+    t = token.strip().lower()
+    if not t:
+        return None
+    for c in analysis.candidates:
+        if c.move_uci.lower() == t:
+            return c
+    for c in analysis.candidates:
+        if c.move_san and c.move_san.lower() == t:
+            return c
+    return None
+
+
+def _parse_comparisons(obj: dict[str, Any], analysis: Analysis) -> list[CandidateComment]:
+    """Extract per-candidate comments, normalizing each move to a vetted UCI."""
+    raw_items = obj.get("comparisons")
+    if not isinstance(raw_items, list):
+        return []
+    comments: list[CandidateComment] = []
+    seen: set[str] = set()
+    for item in raw_items:
+        if not isinstance(item, dict):
+            continue
+        move_token = str(item.get("move") or item.get("uci") or "").strip()
+        comment = str(item.get("comment") or item.get("reasoning") or "").strip()
+        if not comment:
+            continue
+        match = _resolve_candidate(move_token, analysis)
+        move_uci = match.move_uci if match else move_token.lower()
+        if not move_uci or move_uci in seen:
+            continue
+        seen.add(move_uci)
+        comments.append(CandidateComment(move_uci=move_uci, comment=comment))
+    return comments
+
+
 def parse_move_response(text: str, analysis: Analysis) -> MoveProposal:
     """Parse the model's reply into a :class:`MoveProposal`, grounded in ``analysis``.
 
     Lenient by design: tolerates code fences and surrounding prose, normalizes the
-    chosen move to a candidate's UCI when possible (matching by UCI or SAN), and
-    falls back to scanning for any UCI token. Raises :class:`LLMError` only when no
-    move can be recovered at all.
+    recommended move to a candidate's UCI when possible (matching by UCI or SAN),
+    and falls back to scanning for any candidate UCI token. Raises :class:`LLMError`
+    only when no recommended move can be recovered at all.
     """
     if not text or not text.strip():
         raise LLMError("LLM returned an empty response.")
 
-    valid_uci = {c.move_uci.lower(): c for c in analysis.candidates}
-    valid_san = {
-        c.move_san.lower(): c for c in analysis.candidates if c.move_san
-    }
-
     obj = _extract_json_object(text)
-    reasoning = ""
+    summary = ""
     chosen = ""
+    comments: list[CandidateComment] = []
     if obj is not None:
-        chosen = str(obj.get("move") or obj.get("uci") or "").strip()
-        reasoning = str(obj.get("reasoning") or obj.get("explanation") or "").strip()
+        chosen = str(
+            obj.get("recommended") or obj.get("move") or obj.get("uci") or ""
+        ).strip()
+        summary = str(obj.get("summary") or obj.get("reasoning") or "").strip()
+        comments = _parse_comparisons(obj, analysis)
 
-    # Resolve the chosen move against the vetted candidates.
-    def _resolve(token: str) -> CandidateLine | None:
-        t = token.strip().lower()
-        if not t:
-            return None
-        if t in valid_uci:
-            return valid_uci[t]
-        if t in valid_san:
-            return valid_san[t]
-        return None
+    match = _resolve_candidate(chosen, analysis)
 
-    match = _resolve(chosen)
-
-    # If the JSON "move" didn't resolve, scan the whole reply for a UCI token
-    # that matches a candidate before giving up.
+    # If the recommended move didn't resolve, try the first grounded comparison,
+    # then scan the whole reply for any candidate UCI token.
     if match is None:
+        for c in comments:
+            m = _resolve_candidate(c.move_uci, analysis)
+            if m is not None:
+                match = m
+                break
+    if match is None:
+        valid_uci = {c.move_uci.lower() for c in analysis.candidates}
         for token in _UCI_RE.findall(text.lower()):
             if token in valid_uci:
-                match = valid_uci[token]
+                match = _resolve_candidate(token, analysis)
                 break
 
     if match is not None:
-        if not reasoning:
-            reasoning = text.strip()
+        if not summary:
+            summary = match.comment if False else text.strip()  # keep raw as fallback
         return MoveProposal(
             move_uci=match.move_uci,
-            reasoning=reasoning,
+            summary=summary,
+            comments=comments,
             grounded=True,
             raw=text,
         )
 
-    # Nothing matched a candidate. Keep whatever move string we found (if any)
-    # and flag it as ungrounded so the hybrid core can veto / fall back.
+    # Nothing matched a candidate. Keep whatever recommendation string we found (if
+    # any) and flag it ungrounded so the hybrid core can veto / fall back.
     if chosen:
         return MoveProposal(
             move_uci=chosen.lower(),
-            reasoning=reasoning or text.strip(),
+            summary=summary or text.strip(),
+            comments=comments,
             grounded=False,
             raw=text,
         )
 
-    raise LLMError("Could not extract a move from the LLM response.")
+    raise LLMError("Could not extract a recommended move from the LLM response.")
 
 
 class LLMClient:
-    """Thin wrapper over an OpenAI-compatible chat endpoint for move proposals.
+    """Thin wrapper over an OpenAI-compatible chat endpoint for move coaching.
 
     The transport ``client`` can be injected (any object exposing
     ``chat.completions.create``) which keeps this class unit-testable without a
@@ -253,9 +323,11 @@ class LLMClient:
         )
 
     def propose_move(self, fen: str, analysis: Analysis) -> MoveProposal:
-        """Make one grounded LLM call and return its chosen move + reasoning.
+        """Make one grounded LLM call and return a recommendation + comparisons.
 
-        Raises :class:`LLMError` on transport failure or an unusable response.
+        A single round-trip yields the recommended move, an overall summary, and a
+        "why this / why not" comment for each candidate. Raises :class:`LLMError`
+        on transport failure or an unusable response.
         """
         if not analysis.candidates:
             raise LLMError("Cannot propose a move: analysis has no candidates.")
