@@ -62,8 +62,7 @@ def _candidate_from_message(
     Scores are normalized from White's perspective to the side-to-move
     perspective. Returns ``None`` when the message carries no usable move.
     """
-    move_uci = msg.get("move") or msg.get("from", "") and msg.get("lan")
-    move_uci = msg.get("move") or move_uci
+    move_uci = msg.get("move") or msg.get("lan")
     if not move_uci:
         return None
 
