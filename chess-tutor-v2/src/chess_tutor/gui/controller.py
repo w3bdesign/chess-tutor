@@ -119,6 +119,23 @@ class GameController:
         return True
 
     # -- tutor moves (background) ------------------------------------------- #
+    @property
+    def should_start_tutor_turn(self) -> bool:
+        """Whether the tutor's move may be scheduled right now.
+
+        This is the pure, pygame-free scheduling predicate used by the render
+        loop. It is deliberately *not* gated on ``state.thinking``: a player move
+        marks the state ``thinking`` before any worker thread exists, so gating on
+        it would stop the tutor turn from ever starting. ``is_busy`` (a live
+        worker thread) is the correct "already working" guard.
+        """
+        return not (
+            self.state.game_over
+            or self.is_human_turn
+            or self.is_busy
+            or self.board.is_game_over()
+        )
+
     def start_tutor_turn(self) -> None:
         """Kick off the tutor's move on a worker thread if it is its turn."""
         if self.is_busy or self.is_human_turn or self.board.is_game_over():
