@@ -14,7 +14,7 @@ the shared engine core -- nothing is reimplemented here (DRY).
 from __future__ import annotations
 
 import threading
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, replace
 
 import chess
 
