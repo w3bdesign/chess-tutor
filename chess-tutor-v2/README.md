@@ -246,12 +246,20 @@ chess-tutor-v2/
 ├── .env.example            # annotated environment variables
 └── src/chess_tutor/
     ├── config.py           # env-driven Settings (frozen dataclass)
-    ├── cli/                # Typer CLI (forthcoming)
-    └── engine/
-        ├── models.py       # CandidateLine, Analysis (eval normalized to side-to-move)
-        ├── provider.py     # AnalysisProvider interface (engine seam)
-        ├── chess_api.py    # ChessApiProvider over chess-api.com WebSocket
-        └── llm.py          # LLMClient: grounded recommend + why-this/why-not
+    ├── cli/                # Typer CLI front-end (chess-tutor)
+    ├── engine/
+    │   ├── models.py       # CandidateLine, Analysis (eval normalized to side-to-move)
+    │   ├── provider.py     # AnalysisProvider interface (engine seam)
+    │   ├── chess_api.py    # ChessApiProvider over chess-api.com WebSocket
+    │   ├── llm.py          # LLMClient: grounded recommend + why-this/why-not
+    │   ├── hybrid.py       # HybridEngine: engine = final say, blunder guardrail
+    │   └── teaching.py     # comparison rows + why-this / why-not narratives
+    └── gui/                # optional Pygame front-end (chess.com "Green" theme)
+        ├── theme.py        # pure colour/dimension constants (no pygame)
+        ├── geometry.py     # pure square-to-pixel math (no pygame; unit-tested)
+        ├── pieces.py       # cached Unicode-glyph piece rendering
+        ├── controller.py   # thread-safe engine bridge (no pygame; testable)
+        └── app.py          # window, event loop, rendering (chess-tutor-gui)
 ```
 
 ### Key abstractions
@@ -277,8 +285,12 @@ Intentionally out of scope for the POC, but the design leaves clear seams:
   new `AnalysisProvider` implementation; nothing else changes.
 - **Docker** — containerized deployment (engine + CLI/service).
 - **FastAPI / HTTP API / MCP** — expose the hybrid core as a web API or an MCP
-  server for other tools to consume; the engine and LLM layers are already
-  decoupled from the (CLI) presentation layer.
+  server for other tools to consume. The engine, LLM, hybrid, and teaching
+  layers are already decoupled from presentation — the CLI and the Pygame GUI
+  are both thin consumers of the same core, so a web front-end would be too.
+- **Richer GUI** — drag-and-drop pieces, a promotion picker (the GUI currently
+  auto-queens), a move list / PGN export, and bundled piece artwork in place of
+  Unicode glyphs.
 
 ---
 
