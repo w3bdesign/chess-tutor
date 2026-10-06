@@ -11,8 +11,8 @@ move_ and _why not that one_, so you learn by weighing real alternatives rather
 than memorizing a single "best" answer.
 
 > This is a proof-of-concept (POC). It is intentionally minimal and ships with a
-> Python CLI and an optional Pygame desktop GUI (chess.com "Green" board theme),
-> both thin front-ends over the same reusable hybrid core. See
+> Pygame desktop GUI (chess.com "Green" board theme), a thin front-end over the
+> reusable hybrid core. See
 > [Deferred / extension points](#deferred--extension-points) for what is planned
 > but out of scope for the POC.
 
