@@ -36,6 +36,31 @@ class CoachState:
     rows: tuple[ComparisonRow, ...] = ()
     last_move_uci: str | None = None  # for board highlight
     game_over: bool = False
+    # Evaluation of the current position, normalized to **White's perspective**
+    # (positive = good for White) so the TV-style eval bar can orient itself
+    # regardless of whose turn it is. Both ``None`` until the first analysis.
+    eval_cp: int | None = None
+    eval_mate: int | None = None
+
+
+def _white_perspective_eval(analysis: Analysis) -> tuple[int | None, int | None]:
+    """Return ``(cp, mate)`` for ``analysis.best`` from **White's** perspective.
+
+    Engine scores are stored relative to the side to move (bigger == better for
+    whoever is about to play); the eval bar always orients itself to White, so we
+    negate when it is Black's turn.
+    """
+    best = analysis.best
+    if best is None:
+        return None, None
+    try:
+        white_to_move = chess.Board(analysis.fen).turn == chess.WHITE
+    except ValueError:
+        white_to_move = True
+    sign = 1 if white_to_move else -1
+    cp = None if best.score_cp is None else sign * best.score_cp
+    mate = None if best.mate is None else sign * best.mate
+    return cp, mate
 
 
 class GameController:
@@ -170,6 +195,7 @@ class GameController:
             )
         )
         narrative = why_this_move(decision)
+        eval_cp, eval_mate = _white_perspective_eval(decision.analysis)
         self.board.push(move)
         over = self.board.is_game_over()
         self._set_state(
@@ -180,6 +206,8 @@ class GameController:
             rows=rows,
             last_move_uci=decision.move_uci,
             game_over=over,
+            eval_cp=eval_cp,
+            eval_mate=eval_mate,
         )
 
     # -- proactive coaching for the side to move (background) ---------------- #
@@ -217,8 +245,10 @@ class GameController:
         self._coach_worker.start()
 
     def _run_coach_side_to_move(self, fen: str) -> None:
+        # Two-phase so the eval bar updates *immediately* on the fast (free)
+        # engine analysis, without waiting for the slow LLM coaching narrative.
         try:
-            decision = self._engine.select_move(fen)
+            analysis = self._engine.analyse(fen)
         except (AnalysisError, LLMError):
             # Coaching is best-effort: a failed analysis must not disturb play nor
             # clobber the existing panel. Clear only the transient thinking flag.
@@ -226,6 +256,21 @@ class GameController:
                 self._set_state(status="Your move.", thinking=False)
             return
         # Stale guard: if the player has already moved on, drop the result.
+        if self.board.fen() != fen:
+            return
+        # Cache so a subsequent "why not?" on this position is free, and publish
+        # the eval bar right away from the engine-only analysis.
+        self._analysis_cache = (fen, analysis)
+        eval_cp, eval_mate = _white_perspective_eval(analysis)
+        self._set_state(eval_cp=eval_cp, eval_mate=eval_mate)
+
+        # Phase two: the (slower) full decision adds the LLM coaching narrative.
+        try:
+            decision = self._engine.select_move(fen, analysis=analysis)
+        except (AnalysisError, LLMError):
+            if self.board.fen() == fen:
+                self._set_state(status="Your move.", thinking=False)
+            return
         if self.board.fen() != fen:
             return
         self._publish_coaching(decision)
@@ -240,12 +285,15 @@ class GameController:
                 decision.analysis, proposal=decision.proposal, chosen_uci=decision.move_uci
             )
         )
+        eval_cp, eval_mate = _white_perspective_eval(decision.analysis)
         self._set_state(
             status="Your move.",
             thinking=False,
             headline=f"Your best: {san} {self._tag(decision.source)}",
             narrative=why_this_move(decision),
             rows=rows,
+            eval_cp=eval_cp,
+            eval_mate=eval_mate,
         )
 
     # -- coaching queries ---------------------------------------------------- #
@@ -276,12 +324,15 @@ class GameController:
         # the free engine analysis to keep exploration cost-free.
         text = why_not_move(analysis, move_uci)
         rows = tuple(comparison_rows(analysis))
+        eval_cp, eval_mate = _white_perspective_eval(analysis)
         self._set_state(
             status="Your move.",
             thinking=False,
             headline=f"Why not {move_uci}?",
             narrative=text,
             rows=rows,
+            eval_cp=eval_cp,
+            eval_mate=eval_mate,
         )
 
     def _analysis_for_current_position(self) -> Analysis:

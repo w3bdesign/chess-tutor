@@ -18,7 +18,7 @@ import chess
 
 from chess_tutor.engine.hybrid import MoveDecision
 from chess_tutor.engine.models import Analysis, CandidateLine
-from chess_tutor.gui.controller import GameController
+from chess_tutor.gui.controller import GameController, _white_perspective_eval
 
 
 class _DummyEngine:
@@ -163,3 +163,44 @@ def test_should_not_coach_when_game_is_over() -> None:
         controller.board.push(chess.Move.from_uci(uci))
     assert controller.board.is_game_over() is True
     assert controller.should_coach_side_to_move is False
+
+
+# -- White-perspective evaluation (powers the eval bar) ----------------------- #
+def test_white_perspective_eval_keeps_sign_when_white_to_move() -> None:
+    fen = chess.STARTING_FEN  # White to move.
+    line = CandidateLine(move_uci="e2e4", score_cp=60, rank=1)
+    cp, mate = _white_perspective_eval(Analysis(fen=fen, candidates=[line]))
+    assert (cp, mate) == (60, None)
+
+
+def test_white_perspective_eval_negates_when_black_to_move() -> None:
+    board = chess.Board()
+    board.push(chess.Move.from_uci("e2e4"))  # now Black to move.
+    # +40 for the side to move (Black) is -40 from White's perspective.
+    line = CandidateLine(move_uci="e7e5", score_cp=40, rank=1)
+    cp, mate = _white_perspective_eval(Analysis(fen=board.fen(), candidates=[line]))
+    assert (cp, mate) == (-40, None)
+
+
+def test_white_perspective_eval_handles_mate_and_empty() -> None:
+    board = chess.Board()
+    board.push(chess.Move.from_uci("e2e4"))  # Black to move.
+    line = CandidateLine(move_uci="d8h4", mate=2, rank=1)
+    cp, mate = _white_perspective_eval(Analysis(fen=board.fen(), candidates=[line]))
+    # A mate for Black (side to move) is a mate against White -> negative.
+    assert (cp, mate) == (None, -2)
+    # No candidates -> no evaluation.
+    assert _white_perspective_eval(Analysis(fen=chess.STARTING_FEN, candidates=[])) == (
+        None,
+        None,
+    )
+
+
+def test_coaching_publishes_white_perspective_eval() -> None:
+    engine = _CoachingEngine()  # returns score_cp=30 for the side to move.
+    controller = GameController(engine, human_color=chess.WHITE)
+    controller.coach_side_to_move()
+    controller._coach_worker.join(timeout=2)
+    # Opening position is White to move, so +30 stays +30 for White.
+    assert controller.state.eval_cp == 30
+    assert controller.state.eval_mate is None

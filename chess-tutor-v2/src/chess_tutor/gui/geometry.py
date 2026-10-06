@@ -15,11 +15,35 @@ one place.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 import chess
 
 from .theme import Theme
+
+# Centipawn scale for the logistic eval-bar mapping. At +/- this many centipawns
+# the bar is roughly 88% to one side; it approaches but never fully reaches the
+# ends for non-mate scores, matching how broadcast eval bars behave.
+_EVAL_SCALE_CP = 320.0
+
+
+def eval_fill_fraction(cp: int | None, mate: int | None) -> float:
+    """Map a White-perspective evaluation to White's share of the bar (0..1).
+
+    * ``0.5`` is a dead-even position (and the neutral default when no evaluation
+      is available yet, i.e. both arguments ``None``).
+    * Forced mate pins the bar fully: ``1.0`` when White mates, ``0.0`` when
+      White gets mated. A ``mate`` of ``0`` is treated by its (absent) sign as a
+      win for the side that just moved -> White, so it maps to ``1.0``.
+    * Centipawn scores use a logistic (sigmoid) curve so large advantages
+      saturate smoothly toward, but never quite reach, the ends.
+    """
+    if mate is not None:
+        return 1.0 if mate >= 0 else 0.0
+    if cp is None:
+        return 0.5
+    return 1.0 / (1.0 + math.exp(-cp / _EVAL_SCALE_CP))
 
 
 @dataclass(frozen=True)
@@ -73,15 +97,17 @@ class BoardLayout:
         rank = chess.square_rank(square)
         col, row = self._file_rank_to_cell(file, rank)
         size = self.theme.square_size
-        origin = self.theme.board_margin
-        return Rect(origin + col * size, origin + row * size, size, size)
+        origin_x = self.theme.board_left
+        origin_y = self.theme.board_margin
+        return Rect(origin_x + col * size, origin_y + row * size, size, size)
 
     def square_at(self, px: int, py: int) -> chess.Square | None:
         """Return the square under pixel ``(px, py)`` or ``None`` if off-board."""
-        origin = self.theme.board_margin
+        origin_x = self.theme.board_left
+        origin_y = self.theme.board_margin
         size = self.theme.square_size
-        local_x = px - origin
-        local_y = py - origin
+        local_x = px - origin_x
+        local_y = py - origin_y
         if local_x < 0 or local_y < 0:
             return None
         col = local_x // size
@@ -94,32 +120,47 @@ class BoardLayout:
     def file_label_positions(self) -> list[tuple[str, int, int]]:
         """``(letter, x, y)`` anchor points for the file labels (a..h)."""
         size = self.theme.square_size
-        origin = self.theme.board_margin
-        baseline = origin + self.theme.board_size + 2
+        origin_x = self.theme.board_left
+        baseline = self.theme.board_margin + self.theme.board_size + 2
         out: list[tuple[str, int, int]] = []
         for col in range(8):
             file, _ = self._cell_to_file_rank(col, 0)
             letter = chess.FILE_NAMES[file]
-            x = origin + col * size + size // 2
+            x = origin_x + col * size + size // 2
             out.append((letter, x, baseline))
         return out
 
     def rank_label_positions(self) -> list[tuple[str, int, int]]:
         """``(digit, x, y)`` anchor points for the rank labels (1..8)."""
         size = self.theme.square_size
-        origin = self.theme.board_margin
-        x = origin - 12
+        origin_x = self.theme.board_left
+        origin_y = self.theme.board_margin
+        x = origin_x - 12
         out: list[tuple[str, int, int]] = []
         for row in range(8):
             _, rank = self._cell_to_file_rank(0, row)
             digit = chess.RANK_NAMES[rank]
-            y = origin + row * size + size // 2
+            y = origin_y + row * size + size // 2
             out.append((digit, x, y))
         return out
 
     @property
+    def eval_bar_rect(self) -> Rect:
+        """Rectangle of the TV-style evaluation bar on the far left.
+
+        The bar spans the full height of the board grid (aligned with the top and
+        bottom board edges), sitting outside the board to the left of the rank
+        labels.
+        """
+        return Rect(
+            self.theme.eval_bar_margin,
+            self.theme.board_margin,
+            self.theme.eval_bar_width,
+            self.theme.board_size,
+        )
+
+    @property
     def panel_rect(self) -> Rect:
         """Rectangle of the coaching side panel to the right of the board."""
-        origin = self.theme.board_margin
-        left = origin + self.theme.board_size + origin
+        left = self.theme.board_left + self.theme.board_size + self.theme.board_margin
         return Rect(left, 0, self.theme.panel_width, self.theme.window_height)

@@ -27,7 +27,7 @@ from ..config import load_settings
 from ..engine.chess_api import ChessApiProvider
 from ..engine.hybrid import HybridEngine
 from .controller import GameController
-from .geometry import BoardLayout
+from .geometry import BoardLayout, eval_fill_fraction
 from .pieces import PieceRenderer, load_glyph_font
 from .theme import DEFAULT_THEME, Theme
 
@@ -171,10 +171,88 @@ class ChessTutorApp:
     def _draw(self) -> None:
         self.screen.fill(self.theme.background)
         state = self.controller.state
+        self._draw_eval_bar(state)
         self._draw_board(state)
         self._draw_pieces()
         self._draw_labels()
         self._draw_panel(state)
+
+    def _draw_eval_bar(self, state) -> None:
+        """Draw the broadcast-style evaluation bar on the far left.
+
+        White's advantage fills from the side of the board the White pieces are on
+        (so the bar flips with the board), Black's from the opposite end. A faint
+        tick marks the even (0.00) midpoint and a compact score label sits at the
+        end of the dominant side.
+        """
+        rect = self.layout.eval_bar_rect
+        white_frac = eval_fill_fraction(state.eval_cp, state.eval_mate)
+
+        # Background is the Black side of the bar.
+        pygame.draw.rect(
+            self.screen, self.theme.eval_bar_black, (rect.x, rect.y, rect.width, rect.height)
+        )
+
+        white_h = round(white_frac * rect.height)
+        # When White is at the bottom (normal perspective) White fills upward from
+        # the bottom edge; when flipped, White fills downward from the top.
+        if self.perspective == chess.WHITE:
+            white_y = rect.y + rect.height - white_h
+        else:
+            white_y = rect.y
+        if white_h > 0:
+            pygame.draw.rect(
+                self.screen,
+                self.theme.eval_bar_white,
+                (rect.x, white_y, rect.width, white_h),
+            )
+
+        # Even-position midline.
+        mid_y = rect.y + rect.height // 2
+        pygame.draw.line(
+            self.screen,
+            self.theme.eval_bar_midline,
+            (rect.x, mid_y),
+            (rect.x + rect.width, mid_y),
+            1,
+        )
+        # Border around the whole bar.
+        pygame.draw.rect(
+            self.screen,
+            self.theme.eval_bar_border,
+            (rect.x, rect.y, rect.width, rect.height),
+            1,
+        )
+
+        self._draw_eval_label(state, rect, white_frac)
+
+    def _draw_eval_label(self, state, rect, white_frac: float) -> None:
+        """Render the numeric score at the leading side's end of the bar."""
+        label = self._eval_label_text(state)
+        if not label:
+            return
+        white_leads = white_frac >= 0.5
+        # Label colour contrasts with the fill it sits on.
+        colour = self.theme.eval_bar_black if white_leads else self.theme.eval_bar_white
+        surf = self._small_font.render(label, True, colour)
+        # White leads -> label at White's end; Black leads -> at Black's end.
+        white_bottom = self.perspective == chess.WHITE
+        at_bottom = white_leads == white_bottom
+        if at_bottom:
+            y = rect.y + rect.height - surf.get_height() - 3
+        else:
+            y = rect.y + 3
+        x = rect.x + (rect.width - surf.get_width()) // 2
+        self.screen.blit(surf, (x, y))
+
+    @staticmethod
+    def _eval_label_text(state) -> str:
+        """Compact White-perspective score label, e.g. ``+1.3`` or ``M3``."""
+        if state.eval_mate is not None:
+            return f"M{abs(state.eval_mate)}"
+        if state.eval_cp is None:
+            return ""
+        return f"{state.eval_cp / 100:+.1f}"
 
     def _draw_board(self, state) -> None:
         last_move = self._last_move_squares(state)
