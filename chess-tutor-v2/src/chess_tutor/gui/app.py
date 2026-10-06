@@ -86,17 +86,11 @@ class ChessTutorApp:
     def _maybe_start_tutor_turn(self) -> None:
         """Start the tutor's (threaded) move shortly after it becomes its turn.
 
-        Note: we must *not* gate this on ``state.thinking``. A player move marks
-        the state as "thinking" before any worker exists, so gating on it would
-        stop the tutor turn from ever being scheduled. ``is_busy`` (a live worker
-        thread) is the correct "already working" guard.
+        The scheduling decision itself lives in the pygame-free
+        :attr:`GameController.should_start_tutor_turn` predicate (unit-tested);
+        this method only owns the small presentation delay.
         """
-        state = self.controller.state
-        if (
-            state.game_over
-            or self.controller.is_human_turn
-            or self.controller.is_busy
-        ):
+        if not self.controller.should_start_tutor_turn:
             self._tutor_scheduled_at = None
             return
         now = pygame.time.get_ticks()
