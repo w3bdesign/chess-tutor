@@ -124,18 +124,14 @@ def _show_board(board: chess.Board, perspective: chess.Color) -> None:
 
 def _print_help() -> None:
     console.print(
-        "\n".join(
-            [
-                "[bold]Commands[/bold]:",
-                "  <move>        play a move (SAN like 'Nf3' or UCI like 'g1f3')",
-                "  hint          show the engine candidates + coach's recommendation",
-                "  why <move>    explain why an alternative move is weaker",
-                "  board         redraw the board",
-                "  resign        resign the game",
-                "  quit          exit",
-                "  help          show this help",
-            ]
-        )
+        "[bold]Commands[/bold]:\n"
+        "  <move>        play a move (SAN like 'Nf3' or UCI like 'g1f3')\n"
+        "  hint          show the engine candidates + coach's recommendation\n"
+        "  why <move>    explain why an alternative move is weaker\n"
+        "  board         redraw the board\n"
+        "  resign        resign the game\n"
+        "  quit          exit\n"
+        "  help          show this help"
     )
 
 
@@ -242,12 +238,7 @@ def _answer_why_not(board: chess.Board, engine: HybridEngine, move: str) -> None
     except AnalysisError as exc:
         console.print(f"[red]Could not analyse the position: {exc}[/red]")
         return
-    proposal = None
-    if engine.has_llm:
-        try:
-            proposal = engine._llm.propose_move(board.fen(), analysis)  # noqa: SLF001
-        except LLMError:
-            proposal = None
+    proposal = engine.propose(board.fen(), analysis)
     console.print(
         Panel(
             why_not_move(analysis, move, proposal=proposal),

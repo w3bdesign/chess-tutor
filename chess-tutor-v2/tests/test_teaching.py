@@ -76,15 +76,15 @@ class TestComparisonRows:
 
 class TestWhyThisMove:
     def _decision(self, **kw: object) -> MoveDecision:
-        base: dict[str, object] = dict(
-            move_uci="e2e4",
-            source=SOURCE_LLM,
-            vetoed=False,
-            reason="The coach agrees with the engine: e2e4 is best.",
-            loss_cp=0,
-            analysis=_analysis(),
-            proposal=_proposal(),
-        )
+        base: dict[str, object] = {
+            "move_uci": "e2e4",
+            "source": SOURCE_LLM,
+            "vetoed": False,
+            "reason": "The coach agrees with the engine: e2e4 is best.",
+            "loss_cp": 0,
+            "analysis": _analysis(),
+            "proposal": _proposal(),
+        }
         base.update(kw)
         return MoveDecision(**base)  # type: ignore[arg-type]
 
