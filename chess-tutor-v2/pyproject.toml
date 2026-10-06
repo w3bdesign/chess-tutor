@@ -13,6 +13,7 @@ authors = [{ name = "Chess Tutor" }]
 dependencies = [
     "chess>=1.11.2",
     "openai>=3.25.0",
+    "httpx2>=2.13.1",
     "typer>=0.27.3",
     "rich>=15.0.0",
     "python-dotenv>=1.2.4",
