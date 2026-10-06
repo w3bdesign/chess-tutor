@@ -84,13 +84,18 @@ class ChessTutorApp:
 
     # -- scheduling the tutor ------------------------------------------------ #
     def _maybe_start_tutor_turn(self) -> None:
-        """Start the tutor's (threaded) move shortly after it becomes its turn."""
+        """Start the tutor's (threaded) move shortly after it becomes its turn.
+
+        Note: we must *not* gate this on ``state.thinking``. A player move marks
+        the state as "thinking" before any worker exists, so gating on it would
+        stop the tutor turn from ever being scheduled. ``is_busy`` (a live worker
+        thread) is the correct "already working" guard.
+        """
         state = self.controller.state
         if (
             state.game_over
             or self.controller.is_human_turn
             or self.controller.is_busy
-            or state.thinking
         ):
             self._tutor_scheduled_at = None
             return
