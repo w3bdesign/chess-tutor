@@ -156,6 +156,13 @@ stays responsive while it thinks). The side panel shows the status, the engine's
 candidate-move comparison, the coach's narrative for the move just played, and
 captured material.
 
+A broadcast-style **evaluation bar** runs down the far left of the window: White's
+share fills from White's end of the board (it flips with the board on **F**),
+Black's from the other, with a faint tick at the even (0.00) midpoint and a compact
+score label (e.g. `+1.3`, or `M3` for a forced mate). The fill uses a smooth
+logistic curve of the engine's centipawn evaluation, always shown from White's
+perspective regardless of whose turn it is.
+
 ### Cost model (why it stays cheap)
 
 The hosted chess-api.com engine is **free**, but LLM calls cost tokens, so the
