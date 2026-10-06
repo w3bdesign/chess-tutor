@@ -251,8 +251,8 @@ Intentionally out of scope for the POC, but the design leaves clear seams:
 - **Docker** — containerized deployment (engine + CLI/service).
 - **FastAPI / HTTP API / MCP** — expose the hybrid core as a web API or an MCP
   server for other tools to consume. The engine, LLM, hybrid, and teaching
-  layers are already decoupled from presentation — the CLI and the Pygame GUI
-  are both thin consumers of the same core, so a web front-end would be too.
+  layers are already decoupled from presentation — the Pygame GUI is a thin
+  consumer of the same core, so a web front-end would be too.
 - **Richer GUI** — drag-and-drop pieces, a promotion picker (the GUI currently
   auto-queens), a move list / PGN export, and bundled piece artwork in place of
   Unicode glyphs.
