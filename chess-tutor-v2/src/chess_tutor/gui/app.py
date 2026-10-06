@@ -29,7 +29,7 @@ from ..engine.chess_api import ChessApiProvider
 from ..engine.hybrid import HybridEngine
 from .controller import GameController
 from .geometry import BoardLayout
-from .pieces import PieceRenderer
+from .pieces import PieceRenderer, load_glyph_font
 from .theme import DEFAULT_THEME, Theme
 
 _FPS = 60
@@ -57,6 +57,10 @@ class ChessTutorApp:
         self._panel_font = pygame.font.SysFont(None, 22)
         self._heading_font = pygame.font.SysFont(None, 26, bold=True)
         self._small_font = pygame.font.SysFont(None, 18)
+        # A Unicode-glyph-capable font so captured-piece symbols render as pieces
+        # instead of missing-glyph boxes (the default SysFont lacks them).
+        self._glyph_font = load_glyph_font(20)
+        self._mono_font = pygame.font.SysFont("consolas,couriernew,monospace", 16)
 
         self.selected: chess.Square | None = None
         self.legal_targets: list[chess.Square] = []
