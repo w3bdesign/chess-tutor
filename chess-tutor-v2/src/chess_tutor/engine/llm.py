@@ -186,7 +186,9 @@ def _resolve_candidate(token: str, analysis: Analysis) -> CandidateLine | None:
     return None
 
 
-def _parse_comparisons(obj: dict[str, Any], analysis: Analysis) -> list[CandidateComment]:
+def _parse_comparisons(
+    obj: dict[str, Any], analysis: Analysis
+) -> list[CandidateComment]:
     """Extract per-candidate comments, normalizing each move to a vetted UCI."""
     raw_items = obj.get("comparisons")
     if not isinstance(raw_items, list):
@@ -250,7 +252,17 @@ def parse_move_response(text: str, analysis: Analysis) -> MoveProposal:
 
     if match is not None:
         if not summary:
-            summary = match.comment if False else text.strip()  # keep raw as fallback
+            # No explicit summary field: fall back to the recommended move's own
+            # comparison comment, else the raw text, so the CLI always has prose.
+            own = next(
+                (
+                    c.comment
+                    for c in comments
+                    if c.move_uci.lower() == match.move_uci.lower()
+                ),
+                "",
+            )
+            summary = own or text.strip()
         return MoveProposal(
             move_uci=match.move_uci,
             summary=summary,
@@ -305,7 +317,9 @@ class LLMClient:
             self._client = OpenAI(api_key=api_key, base_url=base_url)
 
     @classmethod
-    def from_settings(cls, settings: Settings, *, client: Any | None = None) -> LLMClient:
+    def from_settings(
+        cls, settings: Settings, *, client: Any | None = None
+    ) -> LLMClient:
         """Build a client from :class:`Settings`.
 
         Raises :class:`LLMError` when no API key is configured.
