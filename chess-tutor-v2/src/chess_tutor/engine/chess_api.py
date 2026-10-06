@@ -196,7 +196,7 @@ class ChessApiProvider(AnalysisProvider):
             while True:
                 try:
                     raw = await asyncio.wait_for(ws.recv(), timeout=self._timeout)
-                except (asyncio.TimeoutError, websockets.ConnectionClosed):
+                except (TimeoutError, websockets.ConnectionClosed):
                     break
                 try:
                     msg = json.loads(raw)
