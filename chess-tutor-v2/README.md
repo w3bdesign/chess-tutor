@@ -127,54 +127,19 @@ See [`.env.example`](.env.example) for the annotated source of truth.
 
 ---
 
-## Usage (CLI)
-
-The `chess-tutor` entry point (`chess_tutor.cli.main:app`, a Typer app) plays a
-full game in your terminal with coaching after every move.
-
-```bash
-# With uv
-python -m uv run chess-tutor play
-
-# Or, inside an activated venv
-chess-tutor play
-```
-
-Options:
-
-```bash
-chess-tutor play --color black     # play Black (also: white | random)
-chess-tutor play --depth 16        # override CHESS_API_DEPTH for this game
-chess-tutor play --fen "<FEN>"     # start from a custom position
-```
-
-In-game commands (type at the prompt): a move in UCI/SAN (e.g. `e2e4` or `Nf3`),
-`hint` for the coach's recommendation, `why not <move>` to compare an alternative,
-`help`, and `resign`. After each move you see the engine's candidate-move
-comparison table and the coach's "why this move" narrative.
-
----
-
 ## Usage (GUI)
 
-An optional **Pygame desktop board** using the chess.com default "Green" theme.
-It is a thin front-end over the same hybrid core — no chess rules or move
-selection are reimplemented.
-
-Install the `gui` extra, then launch:
+A **Pygame desktop board** using the chess.com default "Green" theme. It is a
+thin front-end over the hybrid core — no chess rules or move selection are
+reimplemented.
 
 ```bash
 # With uv
-python -m uv run --extra gui chess-tutor-gui
+python -m uv run chess-tutor-gui
 
-# Or, inside an activated venv (install the extra once)
-python -m pip install -e ".[gui]"
+# Or, inside an activated venv
 chess-tutor-gui
 ```
-
-> If your `.venv` was created by `uv` without `pip`, bootstrap it first:
-> `python -m ensurepip --upgrade` (use the venv's interpreter), then
-> `python -m pip install -e ".[gui]"`.
 
 Controls:
 
