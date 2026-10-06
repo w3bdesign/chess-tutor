@@ -19,7 +19,9 @@ from dataclasses import dataclass, replace
 import chess
 
 from ..engine.hybrid import HybridEngine, MoveDecision
+from ..engine.llm import LLMError
 from ..engine.models import Analysis
+from ..engine.provider import AnalysisError
 from ..engine.teaching import ComparisonRow, comparison_rows, why_not_move, why_this_move
 
 
@@ -129,7 +131,7 @@ class GameController:
         fen = self.board.fen()
         try:
             decision = self._engine.select_move(fen)
-        except Exception as exc:  # network/engine failure -> surface, don't crash
+        except (AnalysisError, LLMError) as exc:  # surface, don't crash the UI thread
             self._set_state(status="Engine error.", thinking=False, narrative=str(exc))
             return
         self._apply_tutor_decision(decision)
