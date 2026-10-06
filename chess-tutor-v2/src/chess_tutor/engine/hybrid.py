@@ -226,6 +226,20 @@ class HybridEngine:
             fen, multipv=self._multipv, depth=self._depth
         )
 
+    def propose(self, fen: str, analysis: Analysis) -> MoveProposal | None:
+        """Return the LLM's coaching proposal for ``fen``, or ``None``.
+
+        ``None`` is returned when no LLM is configured or the call fails, so
+        callers (e.g. the CLI's "why not <move>?" explainer) can degrade to
+        engine-only coaching without reaching into private state.
+        """
+        if self._llm is None:
+            return None
+        try:
+            return self._llm.propose_move(fen, analysis)
+        except LLMError:
+            return None
+
     def select_move(self, fen: str, *, analysis: Analysis | None = None) -> MoveDecision:
         """Select the move to play for ``fen`` (engine-authoritative).
 
