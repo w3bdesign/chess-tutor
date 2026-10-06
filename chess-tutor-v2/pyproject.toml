@@ -24,9 +24,15 @@ dev = [
     "pytest>=9.1.1",
     "ruff>=0.16.10",
 ]
+# Optional desktop GUI front-end (Pygame). Install with:
+#   uv pip install -e ".[gui]"
+gui = [
+    "pygame>=2.6.1",
+]
 
 [project.scripts]
 chess-tutor = "chess_tutor.cli.main:app"
+chess-tutor-gui = "chess_tutor.gui.app:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
