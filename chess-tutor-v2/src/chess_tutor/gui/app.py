@@ -75,6 +75,7 @@ class ChessTutorApp:
                     self._on_click(event.pos, event.button)
 
             self._maybe_start_tutor_turn()
+            self.controller.coach_side_to_move()
             self._draw()
             pygame.display.flip()
             self.clock.tick(_FPS)
@@ -270,6 +271,7 @@ class ChessTutorApp:
             marker = "*" if row.is_chosen else ("=" if row.is_best else " ")
             loss = "" if row.loss_cp == 0 else f"  -{row.loss_cp}cp"
             text = f"{marker} {row.rank}. {row.move:<7} {row.score}{loss}"
+            highlighted = row.is_chosen or row.is_best
             colour = (
                 self.theme.panel_heading
                 if row.is_chosen
@@ -278,6 +280,14 @@ class ChessTutorApp:
             surf = self._small_font.render(text, True, colour)
             self.screen.blit(surf, (x, y))
             y += surf.get_height() + 2
+            # Show the replayable SAN variation behind the headline line(s) so the
+            # learner can follow it on a board. Only for the best/chosen line to
+            # keep the panel readable.
+            variation = row.pv_san or row.pv
+            if highlighted and variation:
+                y = self._blit_wrapped(
+                    f"   {variation}", self._small_font, self.theme.panel_muted, x, y, panel
+                )
         return y
 
     def _draw_captured(self, x: int, y: int, panel) -> int:

@@ -65,6 +65,17 @@ class TestComparisonRows:
         assert rows[0].comment == "Classic central control."
         assert rows[2].comment == ""  # no comment for Nf3
 
+    def test_pv_rendered_in_san_for_replay(self) -> None:
+        rows = comparison_rows(_analysis())
+        # The raw UCI PV is still available, and a SAN version is derived so a
+        # learner can replay the variation on a board.
+        assert rows[0].pv == "e2e4 e7e5"
+        assert rows[0].pv_san == "e4 e5"
+
+    def test_pv_san_empty_when_no_variation(self) -> None:
+        rows = comparison_rows(_analysis())
+        assert rows[2].pv_san == ""  # Nf3 line has no stored PV
+
     def test_empty_analysis_returns_no_rows(self) -> None:
         empty = Analysis(fen="x", candidates=[])
         assert comparison_rows(empty) == []

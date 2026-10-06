@@ -182,6 +182,72 @@ class GameController:
             game_over=over,
         )
 
+    # -- proactive coaching for the side to move (background) ---------------- #
+    @property
+    def should_coach_side_to_move(self) -> bool:
+        """Whether to proactively coach the player about the current position.
+
+        Fires at most once per position and only on the **human's** turn -- the
+        tutor's own moves are already explained by :meth:`_apply_tutor_decision`,
+        so between the two, coaching is produced for *both* sides to move.
+
+        Like :attr:`should_start_tutor_turn` this is a pure, pygame-free predicate
+        so the scheduling can be unit-tested. Crucially it uses a *separate*
+        worker from ``is_busy``, so the player is never blocked from moving while
+        the coach is still thinking about the position.
+        """
+        if self.board.is_game_over() or self.state.game_over:
+            return False
+        if not self.is_human_turn:
+            return False
+        if self._coach_worker is not None and self._coach_worker.is_alive():
+            return False
+        return self._coached_fen != self.board.fen()
+
+    def coach_side_to_move(self) -> None:
+        """Kick off coaching for the player's position on the coach worker."""
+        if not self.should_coach_side_to_move:
+            return
+        fen = self.board.fen()
+        self._coached_fen = fen
+        self._set_state(status="Coaching your move...", thinking=True)
+        self._coach_worker = threading.Thread(
+            target=self._run_coach_side_to_move, args=(fen,), daemon=True
+        )
+        self._coach_worker.start()
+
+    def _run_coach_side_to_move(self, fen: str) -> None:
+        try:
+            decision = self._engine.select_move(fen)
+        except (AnalysisError, LLMError):
+            # Coaching is best-effort: a failed analysis must not disturb play nor
+            # clobber the existing panel. Clear only the transient thinking flag.
+            if self.board.fen() == fen:
+                self._set_state(status="Your move.", thinking=False)
+            return
+        # Stale guard: if the player has already moved on, drop the result.
+        if self.board.fen() != fen:
+            return
+        self._publish_coaching(decision)
+
+    def _publish_coaching(self, decision: MoveDecision) -> None:
+        """Publish side-to-move coaching (best move + why + candidate rows)."""
+        board = chess.Board(decision.analysis.fen)
+        move = chess.Move.from_uci(decision.move_uci)
+        san = board.san(move) if move in board.legal_moves else decision.move_uci
+        rows = tuple(
+            comparison_rows(
+                decision.analysis, proposal=decision.proposal, chosen_uci=decision.move_uci
+            )
+        )
+        self._set_state(
+            status="Your move.",
+            thinking=False,
+            headline=f"Your best: {san} {self._tag(decision.source)}",
+            narrative=why_this_move(decision),
+            rows=rows,
+        )
+
     # -- coaching queries ---------------------------------------------------- #
     def explain_why_not(self, from_sq: chess.Square, to_sq: chess.Square) -> None:
         """Explain why a selected alternative is not the engine's pick.

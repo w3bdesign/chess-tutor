@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import chess
 
+from chess_tutor.engine.hybrid import MoveDecision
+from chess_tutor.engine.models import Analysis, CandidateLine
 from chess_tutor.gui.controller import GameController
 
 
@@ -83,3 +85,81 @@ def test_should_not_start_when_game_is_over() -> None:
         controller.board.push(chess.Move.from_uci(uci))
     assert controller.board.is_game_over() is True
     assert controller.should_start_tutor_turn is False
+
+
+# -- proactive coaching for the side to move --------------------------------- #
+class _CoachingEngine:
+    """A stub that returns a canned decision so the coaching flow can be tested.
+
+    Unlike :class:`_DummyEngine` this one *is* meant to be called -- but only via
+    the coaching path, never via the tutor-scheduling predicate.
+    """
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def select_move(self, fen: str) -> MoveDecision:
+        self.calls += 1
+        line = CandidateLine(
+            move_uci="e2e4", move_san="e4", score_cp=30, pv=["e2e4", "e7e5"], rank=1
+        )
+        analysis = Analysis(fen=fen, candidates=[line])
+        return MoveDecision(
+            move_uci="e2e4",
+            source="engine-only",
+            vetoed=False,
+            reason="Best by evaluation.",
+            loss_cp=0,
+            analysis=analysis,
+        )
+
+    def close(self) -> None:  # pragma: no cover - not exercised here
+        pass
+
+
+def test_should_coach_on_humans_turn_once_per_position() -> None:
+    engine = _CoachingEngine()
+    controller = GameController(engine, human_color=chess.WHITE)
+
+    # It is the human's turn from the opening -> coaching should fire.
+    assert controller.should_coach_side_to_move is True
+
+    controller.coach_side_to_move()
+    controller._coach_worker.join(timeout=2)
+
+    # The coach produced a "your best" headline + candidate rows for the player.
+    assert engine.calls == 1
+    assert "Your best" in controller.state.headline
+    assert controller.state.rows
+    assert controller.state.thinking is False
+    # Second poll for the *same* position must not re-fire (one pass per FEN).
+    assert controller.should_coach_side_to_move is False
+
+
+def test_should_not_coach_on_tutors_turn() -> None:
+    engine = _CoachingEngine()
+    controller = GameController(engine, human_color=chess.WHITE)
+    # Advance to the tutor's turn; the tutor move path explains its own move.
+    controller.board.push(chess.Move.from_uci("e2e4"))
+    assert controller.is_human_turn is False
+    assert controller.should_coach_side_to_move is False
+
+
+def test_coaching_result_discarded_when_position_changed() -> None:
+    engine = _CoachingEngine()
+    controller = GameController(engine, human_color=chess.WHITE)
+    stale_fen = controller.board.fen()
+    # The player has already moved on to a different position.
+    controller.board.push(chess.Move.from_uci("d2d4"))
+    controller._run_coach_side_to_move(stale_fen)
+    # Stale result must not clobber the panel with a headline for the old move.
+    assert controller.state.headline == ""
+
+
+def test_should_not_coach_when_game_is_over() -> None:
+    engine = _CoachingEngine()
+    controller = GameController(engine, human_color=chess.WHITE)
+    for uci in ("f2f3", "e7e5", "g2g4", "d8h4"):  # 1. f3 e5 2. g4 Qh4#
+        controller.board.push(chess.Move.from_uci(uci))
+    assert controller.board.is_game_over() is True
+    assert controller.should_coach_side_to_move is False
