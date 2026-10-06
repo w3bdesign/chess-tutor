@@ -36,7 +36,7 @@ class Settings:
     openai_model: str
 
     # Chess engine analysis (the authority)
-    chess_api_url: str
+    chess_api_ws_url: str
     chess_api_depth: int
 
     # Analysis / guardrails
@@ -62,7 +62,7 @@ def load_settings() -> Settings:
             "https://generativelanguage.googleapis.com/v1beta/openai/",
         ),
         openai_model=os.getenv("OPENAI_MODEL", "gemini-3.1-pro-preview"),
-        chess_api_url=os.getenv("CHESS_API_URL", "https://chess-api.com/v1"),
+        chess_api_ws_url=os.getenv("CHESS_API_WS_URL", "wss://chess-api.com/v1"),
         chess_api_depth=_get_int("CHESS_API_DEPTH", 13),
         multipv=_get_int("MULTIPV", 3),
         blunder_threshold_cp=_get_int("BLUNDER_THRESHOLD_CP", 80),
