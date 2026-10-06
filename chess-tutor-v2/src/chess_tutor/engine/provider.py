@@ -9,6 +9,7 @@ changes to the hybrid core, teaching layer, or CLI.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Self
 
 from .models import Analysis
 
@@ -46,7 +47,7 @@ class AnalysisProvider(ABC):
     def close(self) -> None:
         """Release any resources (network client, subprocess). Default: no-op."""
 
-    def __enter__(self) -> "AnalysisProvider":
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *exc: object) -> None:

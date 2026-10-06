@@ -357,7 +357,7 @@ class LLMClient:
                 ],
                 stream=False,
             )
-        except Exception as exc:  # noqa: BLE001 - normalize SDK/transport errors
+        except Exception as exc:  # normalize SDK/transport errors into LLMError
             raise LLMError(f"LLM request failed: {exc}") from exc
 
         try:

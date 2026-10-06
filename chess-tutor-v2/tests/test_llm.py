@@ -2,7 +2,7 @@
 
 Transport is faked by injecting an object that mimics
 ``client.chat.completions.create(...)`` so the grounded prompt-building and the
-lenient response-parsing can be exercised deterministically.
+lenient, comparison-oriented response-parsing can be exercised deterministically.
 """
 
 from __future__ import annotations
@@ -11,6 +11,7 @@ import pytest
 
 from chess_tutor.config import Settings
 from chess_tutor.engine.llm import (
+    CandidateComment,
     LLMClient,
     LLMError,
     MoveProposal,
@@ -39,6 +40,17 @@ def _analysis(fen: str = STARTPOS) -> Analysis:
                 move_uci="g1f3", move_san="Nf3", score_cp=25, pv=["g1f3"], rank=3
             ),
         ],
+    )
+
+
+def _full_response() -> str:
+    return (
+        '{"recommended": "e2e4", '
+        '"summary": "Best grab of the center.", '
+        '"comparisons": ['
+        '{"move": "e2e4", "comment": "Best: stakes the center and frees pieces."}, '
+        '{"move": "d2d4", "comment": "Also fine but slightly less active here."}, '
+        '{"move": "g1f3", "comment": "Flexible, but commits less to the center."}]}'
     )
 
 
@@ -117,6 +129,10 @@ class TestBuildMovePrompt:
         prompt = build_move_prompt(STARTPOS, _analysis())
         assert "depth 13" in prompt
 
+    def test_asks_to_compare_every_candidate(self):
+        prompt = build_move_prompt(STARTPOS, _analysis())
+        assert "EVERY" in prompt
+
     def test_black_to_move(self):
         prompt = build_move_prompt(BLACK_TO_MOVE, _analysis(BLACK_TO_MOVE))
         assert "Side to move: Black" in prompt
@@ -126,50 +142,85 @@ class TestBuildMovePrompt:
 
 
 class TestParseMoveResponse:
-    def test_plain_json(self):
-        text = '{"move": "e2e4", "reasoning": "Controls the center."}'
-        proposal = parse_move_response(text, _analysis())
+    def test_full_comparison_response(self):
+        proposal = parse_move_response(_full_response(), _analysis())
         assert proposal.move_uci == "e2e4"
-        assert proposal.reasoning == "Controls the center."
+        assert proposal.summary == "Best grab of the center."
         assert proposal.grounded is True
+        assert len(proposal.comments) == 3
+        assert {c.move_uci for c in proposal.comments} == {"e2e4", "d2d4", "g1f3"}
+
+    def test_comment_for_lookup(self):
+        proposal = parse_move_response(_full_response(), _analysis())
+        assert "less active" in (proposal.comment_for("d2d4") or "")
+        assert "commits less" in (proposal.comment_for("g1f3") or "")
+        assert proposal.comment_for("a1a1") is None
 
     def test_json_in_code_fence(self):
-        text = '```json\n{"move": "d2d4", "reasoning": "Queen pawn."}\n```'
+        text = "```json\n" + _full_response() + "\n```"
+        proposal = parse_move_response(text, _analysis())
+        assert proposal.move_uci == "e2e4"
+        assert len(proposal.comments) == 3
+
+    def test_json_with_surrounding_prose(self):
+        text = "Sure! Here is my analysis:\n" + _full_response() + "\nHope that helps."
+        proposal = parse_move_response(text, _analysis())
+        assert proposal.move_uci == "e2e4"
+
+    def test_resolves_san_in_recommended_and_comparisons(self):
+        text = (
+            '{"recommended": "Nf3", "summary": "Develop.", '
+            '"comparisons": [{"move": "Nf3", "comment": "Knight out."}]}'
+        )
+        proposal = parse_move_response(text, _analysis())
+        assert proposal.move_uci == "g1f3"
+        assert proposal.comments[0].move_uci == "g1f3"
+
+    def test_uppercase_uci_normalized(self):
+        text = '{"recommended": "E2E4", "summary": "Center.", "comparisons": []}'
+        proposal = parse_move_response(text, _analysis())
+        assert proposal.move_uci == "e2e4"
+        assert proposal.grounded is True
+
+    def test_recommended_missing_uses_first_grounded_comparison(self):
+        text = (
+            '{"summary": "See notes.", '
+            '"comparisons": [{"move": "d2d4", "comment": "Solid center."}]}'
+        )
         proposal = parse_move_response(text, _analysis())
         assert proposal.move_uci == "d2d4"
         assert proposal.grounded is True
 
-    def test_json_with_surrounding_prose(self):
-        text = 'Sure! Here is my pick:\n{"move":"g1f3","reasoning":"Develop."} Enjoy.'
-        proposal = parse_move_response(text, _analysis())
-        assert proposal.move_uci == "g1f3"
-        assert proposal.grounded is True
-
-    def test_resolves_san_to_uci(self):
-        text = '{"move": "Nf3", "reasoning": "Knight out."}'
-        proposal = parse_move_response(text, _analysis())
-        assert proposal.move_uci == "g1f3"
-        assert proposal.grounded is True
-
-    def test_uppercase_uci_normalized(self):
-        text = '{"move": "E2E4", "reasoning": "Center."}'
-        proposal = parse_move_response(text, _analysis())
-        assert proposal.move_uci == "e2e4"
-        assert proposal.grounded is True
-
-    def test_scans_prose_for_uci_when_json_move_invalid(self):
-        # move field is junk, but a valid candidate uci appears in the prose.
-        text = '{"move": "zzzz", "reasoning": "I like e2e4 for the center."}'
+    def test_scans_prose_for_uci_when_recommended_invalid(self):
+        text = '{"recommended": "zzzz", "summary": "I like e2e4.", "comparisons": []}'
         proposal = parse_move_response(text, _analysis())
         assert proposal.move_uci == "e2e4"
         assert proposal.grounded is True
 
     def test_ungrounded_move_flagged(self):
-        # A legal-looking uci that is NOT among the candidates.
-        text = '{"move": "a2a3", "reasoning": "Edge pawn."}'
+        text = '{"recommended": "a2a3", "summary": "Edge pawn.", "comparisons": []}'
         proposal = parse_move_response(text, _analysis())
         assert proposal.move_uci == "a2a3"
         assert proposal.grounded is False
+
+    def test_summary_falls_back_to_recommended_comment(self):
+        text = (
+            '{"recommended": "e2e4", '
+            '"comparisons": [{"move": "e2e4", "comment": "Center grab."}]}'
+        )
+        proposal = parse_move_response(text, _analysis())
+        assert proposal.summary == "Center grab."
+
+    def test_comparisons_dedupe_and_skip_empty(self):
+        text = (
+            '{"recommended": "e2e4", "summary": "x", "comparisons": ['
+            '{"move": "e2e4", "comment": "first"}, '
+            '{"move": "e2e4", "comment": "dup ignored"}, '
+            '{"move": "d2d4", "comment": ""}]}'
+        )
+        proposal = parse_move_response(text, _analysis())
+        moves = [c.move_uci for c in proposal.comments]
+        assert moves == ["e2e4"]  # dup collapsed, empty-comment entry skipped
 
     def test_empty_response_raises(self):
         with pytest.raises(LLMError):
@@ -178,13 +229,6 @@ class TestParseMoveResponse:
     def test_no_move_anywhere_raises(self):
         with pytest.raises(LLMError):
             parse_move_response("I have no idea what to play.", _analysis())
-
-    def test_reasoning_falls_back_to_full_text(self):
-        # Grounded by prose scan, but no reasoning field -> keep raw text.
-        text = "Play e2e4!"
-        proposal = parse_move_response(text, _analysis())
-        assert proposal.move_uci == "e2e4"
-        assert "e2e4" in proposal.reasoning
 
 
 # --- LLMClient.propose_move -------------------------------------------------
@@ -196,15 +240,17 @@ class TestProposeMove:
             api_key="k",
             base_url="http://x",
             model="m",
-            client=_FakeClient('{"move":"e2e4","reasoning":"Center."}'),
+            client=_FakeClient(_full_response()),
         )
         proposal = client.propose_move(STARTPOS, _analysis())
         assert isinstance(proposal, MoveProposal)
         assert proposal.move_uci == "e2e4"
         assert proposal.grounded is True
+        assert len(proposal.comments) == 3
+        assert isinstance(proposal.comments[0], CandidateComment)
 
     def test_passes_model_and_messages(self):
-        fake = _FakeClient('{"move":"e2e4","reasoning":"ok"}')
+        fake = _FakeClient(_full_response())
         client = LLMClient(api_key="k", base_url="http://x", model="my-model", client=fake)
         client.propose_move(STARTPOS, _analysis())
         kwargs = fake.chat.completions.last_kwargs
@@ -261,7 +307,7 @@ class TestFromSettings:
 
     def test_builds_with_injected_client(self):
         client = LLMClient.from_settings(
-            _settings("sk-test"), client=_FakeClient('{"move":"e2e4","reasoning":"ok"}')
+            _settings("sk-test"), client=_FakeClient(_full_response())
         )
         proposal = client.propose_move(STARTPOS, _analysis())
         assert proposal.move_uci == "e2e4"

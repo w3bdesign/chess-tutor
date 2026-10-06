@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import FrozenInstanceError
+
 import pytest
 
 from chess_tutor import config as config_module
@@ -80,7 +82,7 @@ def test_settings_is_frozen() -> None:
         multipv=3,
         blunder_threshold_cp=80,
     )
-    with pytest.raises(Exception):
+    with pytest.raises(FrozenInstanceError):
         settings.multipv = 5  # type: ignore[misc]
 
 

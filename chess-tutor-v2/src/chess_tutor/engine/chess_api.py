@@ -49,7 +49,7 @@ def _as_int(value: Any) -> int | None:
     if value is None:
         return None
     try:
-        return int(round(float(value)))
+        return round(float(value))
     except (TypeError, ValueError):
         return None
 
