@@ -143,13 +143,13 @@ chess-tutor-gui
 
 Controls:
 
-| Input                    | Action                                                           |
-| ------------------------ | --------------------------------------------------------------- |
-| **Left-click**           | Select a piece, then click a highlighted square to move.        |
-| **Right-click**          | On a legal target: ask "why not that move?" (free — no LLM).    |
-| **F**                    | Flip the board perspective.                                     |
-| **N**                    | Start a new game.                                               |
-| **Esc**                  | Clear the current selection.                                    |
+| Input           | Action                                                       |
+| --------------- | ------------------------------------------------------------ |
+| **Left-click**  | Select a piece, then click a highlighted square to move.     |
+| **Right-click** | On a legal target: ask "why not that move?" (free — no LLM). |
+| **F**           | Flip the board perspective.                                  |
+| **N**           | Start a new game.                                            |
+| **Esc**         | Clear the current selection.                                 |
 
 You play one side; the tutor plays the other on a background thread (the window
 stays responsive while it thinks). The side panel shows the status, the engine's
