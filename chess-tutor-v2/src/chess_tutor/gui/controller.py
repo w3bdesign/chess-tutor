@@ -178,7 +178,7 @@ class GameController:
     def _run_why_not(self, move_uci: str) -> None:
         try:
             analysis = self._analysis_for_current_position()
-        except Exception as exc:
+        except (AnalysisError, LLMError) as exc:
             self._set_state(status="Engine error.", thinking=False, narrative=str(exc))
             return
         # Deliberately no LLM proposal here: why-not explanations are derived from

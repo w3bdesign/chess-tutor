@@ -42,13 +42,13 @@ def test_square_rect_black_perspective_is_mirrored() -> None:
     origin = theme.board_margin
     size = theme.square_size
 
-    # A1 is top-left for Black.
-    a1 = layout.square_rect(chess.A1)
-    assert (a1.x, a1.y) == (origin, origin)
+    # The Black view is a 180-degree rotation of the White view: H1 is top-left.
+    h1 = layout.square_rect(chess.H1)
+    assert (h1.x, h1.y) == (origin, origin)
 
-    # H8 is bottom-right for Black.
-    h8 = layout.square_rect(chess.H8)
-    assert (h8.x, h8.y) == (origin + 7 * size, origin + 7 * size)
+    # A8 is bottom-right for Black.
+    a8 = layout.square_rect(chess.A8)
+    assert (a8.x, a8.y) == (origin + 7 * size, origin + 7 * size)
 
 
 def test_square_at_is_inverse_of_square_rect_both_perspectives() -> None:
