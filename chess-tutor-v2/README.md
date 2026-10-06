@@ -211,7 +211,6 @@ chess-tutor-v2/
 ├── .env.example            # annotated environment variables
 └── src/chess_tutor/
     ├── config.py           # env-driven Settings (frozen dataclass)
-    ├── cli/                # Typer CLI front-end (chess-tutor)
     ├── engine/
     │   ├── models.py       # CandidateLine, Analysis (eval normalized to side-to-move)
     │   ├── provider.py     # AnalysisProvider interface (engine seam)
@@ -219,7 +218,7 @@ chess-tutor-v2/
     │   ├── llm.py          # LLMClient: grounded recommend + why-this/why-not
     │   ├── hybrid.py       # HybridEngine: engine = final say, blunder guardrail
     │   └── teaching.py     # comparison rows + why-this / why-not narratives
-    └── gui/                # optional Pygame front-end (chess.com "Green" theme)
+    └── gui/                # Pygame front-end (chess.com "Green" theme)
         ├── theme.py        # pure colour/dimension constants (no pygame)
         ├── geometry.py     # pure square-to-pixel math (no pygame; unit-tested)
         ├── pieces.py       # cached Unicode-glyph piece rendering
@@ -248,7 +247,7 @@ Intentionally out of scope for the POC, but the design leaves clear seams:
 
 - **Local Stockfish (UCI)** — swap chess-api.com for a local engine by adding a
   new `AnalysisProvider` implementation; nothing else changes.
-- **Docker** — containerized deployment (engine + CLI/service).
+- **Docker** — containerized deployment (engine + service).
 - **FastAPI / HTTP API / MCP** — expose the hybrid core as a web API or an MCP
   server for other tools to consume. The engine, LLM, hybrid, and teaching
   layers are already decoupled from presentation — the Pygame GUI is a thin
