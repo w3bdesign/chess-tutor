@@ -98,19 +98,26 @@ class _CoachingEngine:
     def __init__(self) -> None:
         self.calls = 0
 
-    def select_move(self, fen: str) -> MoveDecision:
-        self.calls += 1
+    def _analysis(self, fen: str) -> Analysis:
         line = CandidateLine(
             move_uci="e2e4", move_san="e4", score_cp=30, pv=["e2e4", "e7e5"], rank=1
         )
-        analysis = Analysis(fen=fen, candidates=[line])
+        return Analysis(fen=fen, candidates=[line])
+
+    def analyse(self, fen: str) -> Analysis:
+        return self._analysis(fen)
+
+    def select_move(
+        self, fen: str, *, analysis: Analysis | None = None
+    ) -> MoveDecision:
+        self.calls += 1
         return MoveDecision(
             move_uci="e2e4",
             source="engine-only",
             vetoed=False,
             reason="Best by evaluation.",
             loss_cp=0,
-            analysis=analysis,
+            analysis=analysis or self._analysis(fen),
         )
 
     def close(self) -> None:  # pragma: no cover - not exercised here
