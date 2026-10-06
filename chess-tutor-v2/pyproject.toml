@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "chess-tutor-v2"
 version = "0.1.0"
-description = "A hybrid chess tutor: Gemini proposes moves with reasoning, Stockfish has the final say. Candidate-move comparison and plain-English coaching in a CLI."
+description = "A hybrid chess tutor: Gemini proposes moves with reasoning, Stockfish has the final say. Candidate-move comparison and plain-English coaching in a Pygame desktop GUI."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -14,9 +14,8 @@ dependencies = [
     "chess>=1.11.2",
     "openai>=3.25.0",
     "websockets>=17.2",
-    "typer>=0.27.3",
-    "rich>=15.0.0",
     "python-dotenv>=1.2.4",
+    "pygame>=2.6.1",
 ]
 
 [project.optional-dependencies]
@@ -24,14 +23,8 @@ dev = [
     "pytest>=9.1.1",
     "ruff>=0.16.10",
 ]
-# Optional desktop GUI front-end (Pygame). Install with:
-#   uv pip install -e ".[gui]"
-gui = [
-    "pygame>=2.6.1",
-]
 
 [project.scripts]
-chess-tutor = "chess_tutor.cli.main:app"
 chess-tutor-gui = "chess_tutor.gui.app:main"
 
 [tool.setuptools.packages.find]
