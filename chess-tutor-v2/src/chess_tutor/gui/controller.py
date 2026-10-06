@@ -19,6 +19,7 @@ from dataclasses import dataclass, field, replace
 import chess
 
 from ..engine.hybrid import HybridEngine, MoveDecision
+from ..engine.models import Analysis
 from ..engine.teaching import ComparisonRow, comparison_rows, why_not_move, why_this_move
 
 
@@ -51,6 +52,9 @@ class GameController:
         self._lock = threading.Lock()
         self._state = CoachState(status=self._initial_status())
         self._worker: threading.Thread | None = None
+        # Cache of the latest free engine analysis, keyed by FEN, so repeated
+        # "why not?" questions about the same position cost nothing.
+        self._analysis_cache: tuple[str, Analysis] | None = None
 
     # -- state access -------------------------------------------------------- #
     def _initial_status(self) -> str:
