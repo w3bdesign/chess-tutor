@@ -18,6 +18,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import chess
+
 from .hybrid import MoveDecision, centipawn_loss
 from .llm import MoveProposal
 from .models import Analysis, CandidateLine
@@ -35,6 +37,7 @@ class ComparisonRow:
     is_best: bool  # engine's top line
     is_chosen: bool  # the move actually played this turn
     pv: str  # short principal variation (space-separated UCI)
+    pv_san: str  # same variation rendered in SAN, for replaying on a board
     comment: str  # LLM's why-this/why-not note, if available
 
 
@@ -44,6 +47,32 @@ def _move_label(line: CandidateLine) -> str:
 
 def _pv_text(line: CandidateLine, *, limit: int = 6) -> str:
     return " ".join(line.pv[:limit]) if line.pv else ""
+
+
+def _pv_san_text(fen: str, line: CandidateLine, *, limit: int = 6) -> str:
+    """Render the principal variation in SAN so a learner can replay it.
+
+    Falls back to the raw UCI (via :func:`_pv_text`) if any move in the stored PV
+    is illegal for the position -- providers very occasionally emit a truncated or
+    off-by-one PV, and coaching output must never crash the UI over it.
+    """
+    if not line.pv:
+        return ""
+    try:
+        board = chess.Board(fen)
+    except ValueError:
+        return _pv_text(line, limit=limit)
+    sans: list[str] = []
+    for uci in line.pv[:limit]:
+        try:
+            move = chess.Move.from_uci(uci)
+        except ValueError:
+            break
+        if move not in board.legal_moves:
+            break
+        sans.append(board.san(move))
+        board.push(move)
+    return " ".join(sans) if sans else _pv_text(line, limit=limit)
 
 
 def comparison_rows(
@@ -74,6 +103,7 @@ def comparison_rows(
                 is_best=(line.move_uci == best.move_uci),
                 is_chosen=(chosen_uci is not None and line.move_uci == chosen_uci),
                 pv=_pv_text(line),
+                pv_san=_pv_san_text(analysis.fen, line),
                 comment=comment or "",
             )
         )

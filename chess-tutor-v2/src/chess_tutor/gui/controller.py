@@ -54,6 +54,14 @@ class GameController:
         self._lock = threading.Lock()
         self._state = CoachState(status=self._initial_status())
         self._worker: threading.Thread | None = None
+        # A *separate* worker for proactively coaching the side to move. It is
+        # deliberately distinct from ``_worker`` so that coaching never sets
+        # ``is_busy`` -- the human must be able to move at any instant, even while
+        # the coach is still thinking about the current position.
+        self._coach_worker: threading.Thread | None = None
+        # The FEN we have already coached (or begun coaching), so we fire exactly
+        # one coaching pass per position rather than once per frame.
+        self._coached_fen: str | None = None
         # Cache of the latest free engine analysis, keyed by FEN, so repeated
         # "why not?" questions about the same position cost nothing.
         self._analysis_cache: tuple[str, Analysis] | None = None
