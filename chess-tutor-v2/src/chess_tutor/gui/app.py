@@ -13,8 +13,7 @@ Controls
   "why not that move?" (engine-only analysis -- no LLM cost).
 * ``f`` flips the board; ``n`` starts a new game; ``Esc`` clears the selection.
 
-Run with ``chess-tutor-gui`` (after ``uv pip install -e ".[gui]"``) or
-``python -m chess_tutor.gui.app``.
+Run with ``chess-tutor-gui`` or ``python -m chess_tutor.gui.app``.
 """
 
 from __future__ import annotations
@@ -250,6 +249,10 @@ class ChessTutorApp:
             y = self._blit_text(state.headline, self._panel_font, self.theme.panel_heading, x, y, panel)
             y += 4
 
+        # Evaluation of the current position (best candidate, side-to-move view).
+        y = self._draw_evaluation(state, x, y, panel)
+        y += 4
+
         # Captured material summary.
         y = self._draw_captured(x, y, panel)
         y += 8
@@ -264,6 +267,10 @@ class ChessTutorApp:
         if state.narrative:
             y = self._blit_text("Coach", self._panel_font, self.theme.panel_heading, x, y, panel)
             y = self._blit_wrapped(state.narrative, self._small_font, self.theme.panel_text, x, y, panel)
+
+        # Move list pinned above the controls hint so it never overlaps the
+        # variable-height sections above.
+        self._draw_move_list(x, panel)
 
         # Controls hint pinned near the bottom.
         hint = "L-click: move   R-click: why not?   F: flip   N: new   Esc: clear"
@@ -294,10 +301,62 @@ class ChessTutorApp:
                 )
         return y
 
+    def _draw_evaluation(self, state, x: int, y: int, panel) -> int:
+        """Show the current evaluation (best candidate, side-to-move perspective)."""
+        score = state.rows[0].score if state.rows else "--"
+        label_surf = self._small_font.render("Eval: ", True, self.theme.panel_muted)
+        value_surf = self._panel_font.render(score, True, self.theme.panel_text)
+        self.screen.blit(label_surf, (x, y + 4))
+        self.screen.blit(value_surf, (x + label_surf.get_width(), y))
+        return y + value_surf.get_height() + 2
+
     def _draw_captured(self, x: int, y: int, panel) -> int:
+        """Render captured material using a glyph-capable font for the symbols."""
         white_cap, black_cap = self._captured_pieces()
-        line = f"You: {''.join(white_cap) or '-'}   Tutor: {''.join(black_cap) or '-'}"
-        return self._blit_text(line, self._small_font, self.theme.panel_muted, x, y, panel)
+        you = "".join(white_cap) or "-"
+        tutor = "".join(black_cap) or "-"
+        cx = x
+        for label, glyphs in (("You: ", you), ("  Tutor: ", tutor)):
+            lab = self._small_font.render(label, True, self.theme.panel_muted)
+            self.screen.blit(lab, (cx, y + 3))
+            cx += lab.get_width()
+            gly = self._glyph_font.render(glyphs, True, self.theme.panel_text)
+            self.screen.blit(gly, (cx, y))
+            cx += gly.get_width()
+        return y + self._glyph_font.get_height() + 2
+
+    def _draw_move_list(self, x: int, panel) -> None:
+        """Render the SAN move history (most recent moves) near the panel bottom."""
+        rows = self._san_move_rows(limit=8)
+        if not rows:
+            return
+        bottom = panel.height - 32  # sits just above the controls hint
+        line_h = self._mono_font.get_height() + 2
+        y = bottom - len(rows) * line_h
+        head = self._blit_text(
+            "Moves", self._panel_font, self.theme.panel_heading, x, y - line_h - 6, panel
+        )
+        _ = head
+        for text in rows:
+            surf = self._mono_font.render(text, True, self.theme.panel_text)
+            self.screen.blit(surf, (x, y))
+            y += line_h
+
+    def _san_move_rows(self, *, limit: int) -> list[str]:
+        """Build numbered SAN rows ('1. e4 e5') from the game's move stack."""
+        board = self.controller.board
+        replay = chess.Board()
+        sans: list[str] = []
+        for move in board.move_stack:
+            sans.append(replay.san(move))
+            replay.push(move)
+        rows: list[str] = []
+        for i in range(0, len(sans), 2):
+            num = i // 2 + 1
+            white = sans[i]
+            black = sans[i + 1] if i + 1 < len(sans) else ""
+            rows.append(f"{num:>2}. {white:<8}{black}")
+        return rows[-limit:]
 
     # -- small drawing helpers ---------------------------------------------- #
     def _tint(self, rect, colour: tuple[int, int, int]) -> None:
@@ -380,7 +439,7 @@ def _wrap(text: str, font: pygame.font.Font, max_width: int) -> list[str]:
 
 
 def _build_engine() -> HybridEngine:
-    """Construct the hybrid engine from environment settings (same as the CLI)."""
+    """Construct the hybrid engine from environment settings."""
     settings = load_settings()
     provider = ChessApiProvider(settings.chess_api_ws_url)
     return HybridEngine.from_settings(settings, provider)
