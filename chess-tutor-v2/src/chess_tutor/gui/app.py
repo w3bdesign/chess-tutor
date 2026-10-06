@@ -369,7 +369,7 @@ def _wrap(text: str, font: pygame.font.Font, max_width: int) -> list[str]:
 def _build_engine() -> HybridEngine:
     """Construct the hybrid engine from environment settings (same as the CLI)."""
     settings = load_settings()
-    provider = ChessApiProvider(settings)
+    provider = ChessApiProvider(settings.chess_api_ws_url)
     return HybridEngine.from_settings(settings, provider)
 
 
