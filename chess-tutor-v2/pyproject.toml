@@ -11,17 +11,17 @@ requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "Chess Tutor" }]
 dependencies = [
-    "chess>=1.11.1",
-    "google-genai>=0.3.0",
-    "typer>=0.12.0",
-    "rich>=13.7.0",
-    "python-dotenv>=1.0.1",
+    "chess>=1.11.2",
+    "openai>=3.25.0",
+    "typer>=0.27.3",
+    "rich>=15.0.0",
+    "python-dotenv>=1.2.4",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.0.0",
-    "ruff>=0.5.0",
+    "pytest>=9.1.1",
+    "ruff>=0.16.10",
 ]
 
 [project.scripts]
