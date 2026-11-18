@@ -39,6 +39,21 @@ def _controller(human_color: chess.Color = chess.WHITE) -> GameController:
     return GameController(_DummyEngine(), human_color=human_color)
 
 
+def test_play_from_here_rewinds_to_viewed_position() -> None:
+    board = chess.Board()
+    for san in ("e4", "e5", "Nf3", "Nc6"):
+        board.push_san(san)
+    controller = GameController(_DummyEngine(), human_color=chess.WHITE, board=board)
+    assert controller.can_play_from_here is False  # at the latest position
+    controller.set_view(3)  # after 2.Nf3, Black to move
+    assert controller.can_play_from_here is True
+    controller.play_from_here()
+    assert len(controller.board.move_stack) == 3
+    assert controller.at_latest
+    assert controller.human_color == chess.BLACK
+    assert controller.is_human_turn
+
+
 def test_should_not_start_on_humans_turn_at_game_start() -> None:
     controller = _controller(human_color=chess.WHITE)
     # White (the human) is to move from the opening position.

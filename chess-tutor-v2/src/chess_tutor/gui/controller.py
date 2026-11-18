@@ -215,12 +215,43 @@ class GameController:
         stack = list(self.board.move_stack)
         board = self.board.root()
         for ply, move in enumerate(stack):
-            if self._closed:
+            if self._closed or not self.analysis_mode:
                 return
             self._run_review(board.copy(stack=False), move, ply)
             board.push(move)
             self._set_state(status=f"Analysing the imported game... {ply + 1}/{len(stack)} moves")
         self._set_state(status="Analysis complete - use Left/Right to step through the moves.")
+
+    @property
+    def can_play_from_here(self) -> bool:
+        """Rewinding is possible for local and imported games, not live Lichess games."""
+        return self._lichess is None and not self.is_busy and (self.analysis_mode or not self.at_latest)
+
+    def play_from_here(self) -> None:
+        """Cut the game back to the position shown; you play on from there (side to move)."""
+        if not self.can_play_from_here:
+            return
+        keep = self.view_len
+        with self._lock:
+            while len(self.board.move_stack) > keep:
+                self.board.pop()
+            self._reviews = {p: r for p, r in self._reviews.items() if p < keep}
+        self.analysis_mode = False
+        self.view_ply = None
+        self._view_cache = None
+        self.human_color = self.board.turn
+        self._coached_fen = None
+        over = self.board.is_game_over()
+        self._set_state(
+            status="Game over." if over else "Your move - playing on from here.",
+            thinking=False,
+            headline="",
+            narrative="",
+            rows=(),
+            coaching=None,
+            game_over=over,
+            last_move_uci=self.board.move_stack[-1].uci() if self.board.move_stack else None,
+        )
 
     def export_pgn_text(self) -> str:
         from ..explain.pgn import export_pgn

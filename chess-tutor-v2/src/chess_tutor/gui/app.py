@@ -93,6 +93,8 @@ class ChessTutorApp(BoardDrawMixin, PanelMixin):
         self._tab_rects: list[pygame.Rect] = []
         self._chat_box: pygame.Rect | None = None
         self._buttons: list[tuple[pygame.Rect, str]] = []
+        self._move_rects: list[tuple[pygame.Rect, int]] = []
+        self._content_clip = pygame.Rect(0, 0, 0, 0)
         self._facts_cache: tuple[str, list[Fact]] | None = None
         self._cy = 0  # virtual y cursor while drawing scrolled content
         self._last_ply_seen: tuple[int, int] = (0, 0)
@@ -272,16 +274,34 @@ class ChessTutorApp(BoardDrawMixin, PanelMixin):
             if rect.collidepoint(pos):
                 self._set_tab(i)
                 return
-        for rect, action in self._buttons:
-            if rect.collidepoint(pos):
-                self._import_pgn() if action == "import" else self._export_pgn()
+        # Footer buttons are appended last; check them first so they win any overlap.
+        for rect, action in reversed(self._buttons):
+            if rect.collidepoint(pos) and (action != "play_here" or self._content_clip.collidepoint(pos)):
+                if action == "import":
+                    self._import_pgn()
+                elif action == "export":
+                    self._export_pgn()
+                else:
+                    self._play_from_here()
                 return
+        if self._content_clip.collidepoint(pos):
+            for rect, ply in self._move_rects:
+                if rect.collidepoint(pos):
+                    self.controller.set_view(ply + 1)
+                    self._clear_selection()
+                    return
         if self._chat_box is not None and self._chat_box.collidepoint(pos):
             self._open_chat()
             return
+        square = self.layout.square_at(*pos)
+        # Browsing an earlier position: grabbing a piece of the side to move branches off there.
+        c = self.controller
+        if square is not None and button == 1 and not c.at_latest and c.can_play_from_here:
+            piece = c.view_board.piece_at(square)
+            if piece is not None and piece.color == c.view_board.turn:
+                self._play_from_here()
         if self.controller.is_busy or not self.controller.is_human_turn:
             return
-        square = self.layout.square_at(*pos)
         if square is None:
             self._clear_selection()
             return
@@ -318,6 +338,14 @@ class ChessTutorApp(BoardDrawMixin, PanelMixin):
     def _clear_selection(self) -> None:
         self.selected = None
         self.legal_targets = []
+
+    def _play_from_here(self) -> None:
+        self.controller.play_from_here()
+        if self.perspective != self.controller.human_color:
+            self._flip_board()
+        self._clear_selection()
+        self.scroll = 0
+        self._notify("Playing on from this position - your move.")
 
     def _flip_board(self) -> None:
         self.perspective = not self.perspective

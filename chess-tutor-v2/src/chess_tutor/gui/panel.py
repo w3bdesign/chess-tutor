@@ -63,6 +63,8 @@ class PanelMixin:
 
         # Tabs.
         self._tab_rects = []
+        self._buttons = []
+        self._move_rects = []
         tx = x
         for i, name in enumerate(_TABS):
             active = i == self.tab
@@ -79,6 +81,7 @@ class PanelMixin:
         chat_h = 46 if self.tab == 3 else 0
         footer_h = 28 + chat_h
         clip = pygame.Rect(panel.x, y, panel.width, panel.height - y - footer_h)
+        self._content_clip = clip
         self.screen.set_clip(clip)
         self._cy = y
         if self.tab == 0:
@@ -120,7 +123,6 @@ class PanelMixin:
             self.screen.set_clip(None)
 
         # Footer: Import / Export buttons on the right, a notice or key hint on the left.
-        self._buttons = []
         bx = panel.x + panel.width - _PAD
         for label, action in (("Export PGN", "export"), ("Import PGN", "import")):
             surf = self._small_font.render(label, True, self.theme.panel_text)
@@ -289,7 +291,59 @@ class PanelMixin:
         elif not v and not c.analysis_mode and c.at_latest:
             self._w("Make a move - every move (yours and your opponent's) gets reviewed here.",
                     self._small_font, self.theme.panel_muted)
+        self._draw_move_list()
         self._draw_glossary(terms)
+
+    def _content_button(self, label: str, action: str) -> None:
+        """A clickable button inside the scrolled content."""
+        surf = self._small_font.render(label, True, self.theme.panel_text)
+        rect = pygame.Rect(self._panel.x + _PAD + 8, self._cy - self.scroll + 4,
+                           surf.get_width() + 18, surf.get_height() + 10)
+        pygame.draw.rect(self.screen, self.theme.tab_active, rect, border_radius=5)
+        self.screen.blit(surf, (rect.x + 9, rect.y + 5))
+        self._buttons.append((rect, action))
+        self._cy += rect.height + 8
+
+    def _draw_move_list(self) -> None:
+        """Clickable moves (chess.com style): click one to jump the board there."""
+        c = self.controller
+        board = c.board
+        if not board.move_stack:
+            return
+        self._section("Moves - click one to jump there")
+        reviews = c.reviews_snapshot()
+        font = self._small_font
+        line_h = font.get_height() + 8
+        x0 = self._panel.x + _PAD + 8
+        max_x = self._panel.x + self._panel.width - _PAD
+        x = x0
+        current = c.view_len - 1
+        replay = board.root()
+        chips = [(-1, "Start", None)]
+        for ply, move in enumerate(board.move_stack):
+            san = replay.san(move)
+            replay.push(move)
+            r = reviews.get(ply)
+            sym = LABEL_SYMBOL.get(r.label, "") if r else ""
+            num = f"{ply // 2 + 1}. " if ply % 2 == 0 else ""
+            bad = r is not None and r.label in ("Inaccuracy", "Mistake", "Blunder")
+            chips.append((ply, f"{num}{san}{sym}", self._label_colour(r.label) if bad else None))
+        for ply, text, colour in chips:
+            surf = font.render(text, True, colour or self.theme.panel_text)
+            w = surf.get_width() + 12
+            if x + w > max_x:
+                x = x0
+                self._cy += line_h
+            rect = pygame.Rect(x, self._cy - self.scroll, w, line_h - 2)
+            if ply == current:
+                pygame.draw.rect(self.screen, self.theme.tab_active, rect, border_radius=4)
+            self.screen.blit(surf, (x + 6, rect.y + 4))
+            self._move_rects.append((rect, ply))
+            x += w + 2
+        self._cy += line_h + 4
+        if c.can_play_from_here:
+            side = "White" if c.view_board.turn == chess.WHITE else "Black"
+            self._content_button(f"Play from here (you play {side})", "play_here")
 
     def _draw_game_summary(self) -> None:
         reviews = self.controller.reviews_snapshot()
@@ -364,9 +418,6 @@ class PanelMixin:
         white_cap, black_cap = self._captured_pieces()
         self._w(f"White took: {''.join(white_cap) or '-'}", self._glyph_font, indent=8, gap=0)
         self._w(f"Black took: {''.join(black_cap) or '-'}", self._glyph_font, indent=8)
-        self._section("Moves")
-        for text in self._san_move_rows(limit=200):
-            self._w(text, self._mono_font, self.theme.panel_text, indent=8, gap=0)
 
     # -- Chat tab ------------------------------------------------------------ #
     def _draw_chat_tab(self, state) -> None:

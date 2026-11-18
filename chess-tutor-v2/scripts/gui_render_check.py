@@ -66,6 +66,12 @@ def main() -> None:
         app.tab = tab
         app._draw()
         pygame.image.save(app.screen, f"render_tab{tab + 1}.png")
+    # Browsing an earlier move: move list highlight + "Play from here" button.
+    app.controller.set_view(2)
+    app.tab = 0
+    app._draw()
+    pygame.image.save(app.screen, "render_browse.png")
+    app.controller.set_view(len(app.controller.board.move_stack))
     # Simulate maximizing the window.
     pygame.display.set_mode((1600, 900), pygame.RESIZABLE)
     app._relayout(1600, 900)
