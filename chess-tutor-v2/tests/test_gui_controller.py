@@ -134,9 +134,10 @@ def test_should_coach_on_humans_turn_once_per_position() -> None:
     controller.coach_side_to_move()
     controller._coach_worker.join(timeout=2)
 
-    # The coach produced a "your best" headline + candidate rows for the player.
-    assert engine.calls == 1
-    assert "Your best" in controller.state.headline
+    # The coach produced deterministic coaching + candidate rows (no LLM call).
+    assert engine.calls == 0
+    assert controller.state.coaching is not None
+    assert "Engine's move: 1.e4" in controller.state.coaching.best_text
     assert controller.state.rows
     assert controller.state.thinking is False
     # Second poll for the *same* position must not re-fire (one pass per FEN).

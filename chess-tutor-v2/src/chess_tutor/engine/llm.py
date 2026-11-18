@@ -285,6 +285,28 @@ def parse_move_response(text: str, analysis: Analysis) -> MoveProposal:
     raise LLMError("Could not extract a recommended move from the LLM response.")
 
 
+def make_openai_client(
+    *, api_key: str, base_url: str, auth_scheme: str = "Bearer", timeout: float = 60.0
+) -> Any:
+    """Build an ``openai.OpenAI`` client for any OpenAI-compatible endpoint.
+
+    The SDK always sends ``Authorization: Bearer <key>``; for providers that
+    expect a different scheme (e.g. ``Key <key>``) the header is overridden.
+    """
+    try:
+        from openai import OpenAI
+    except ImportError as exc:  # pragma: no cover - import guard
+        raise LLMError("The 'openai' package is required for the LLM client.") from exc
+    if auth_scheme.lower() == "bearer":
+        return OpenAI(api_key=api_key, base_url=base_url, timeout=timeout)
+    return OpenAI(
+        api_key="unused",
+        base_url=base_url,
+        timeout=timeout,
+        default_headers={"Authorization": f"{auth_scheme} {api_key}"},
+    )
+
+
 class LLMClient:
     """Thin wrapper over an OpenAI-compatible chat endpoint for move coaching.
 
@@ -302,19 +324,16 @@ class LLMClient:
         model: str,
         temperature: float = 0.2,
         client: Any | None = None,
+        auth_scheme: str = "Bearer",
     ) -> None:
         self._model = model
         self._temperature = temperature
         if client is not None:
             self._client = client
         else:
-            try:
-                from openai import OpenAI
-            except ImportError as exc:  # pragma: no cover - import guard
-                raise LLMError(
-                    "The 'openai' package is required for the LLM client."
-                ) from exc
-            self._client = OpenAI(api_key=api_key, base_url=base_url)
+            self._client = make_openai_client(
+                api_key=api_key, base_url=base_url, auth_scheme=auth_scheme
+            )
 
     @classmethod
     def from_settings(
@@ -334,6 +353,7 @@ class LLMClient:
             base_url=settings.openai_base_url,
             model=settings.openai_model,
             client=client,
+            auth_scheme=settings.openai_auth_scheme,
         )
 
     def propose_move(self, fen: str, analysis: Analysis) -> MoveProposal:

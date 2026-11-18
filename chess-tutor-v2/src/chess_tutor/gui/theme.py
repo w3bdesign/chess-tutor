@@ -18,7 +18,7 @@ class Theme:
     # Board sizing.
     square_size: int = 80
     board_margin: int = 24  # space around the board for rank/file labels
-    panel_width: int = 360  # coaching panel to the right of the board
+    panel_width: int = 480  # coaching panel to the right of the board
 
     # TV-style evaluation bar, pinned to the far left of the window (outside the
     # board, left of the rank labels).
@@ -57,6 +57,21 @@ class Theme:
 
     # Alpha used for the translucent move/legal overlays.
     overlay_alpha: int = 110
+
+    # Explanation visuals: arrows on the board and highlighted squares.
+    arrow_played: RGB = (90, 150, 230)  # the move being explained
+    arrow_best: RGB = (110, 200, 80)  # engine's better move
+    arrow_reply: RGB = (225, 70, 60)  # opponent's punishing reply / threats to you
+    arrow_attack: RGB = (240, 170, 50)  # what the move attacks
+    mark: RGB = (80, 170, 245)  # squares a fact is about
+    arrow_alpha: int = 170
+
+    # Move-quality colours.
+    good_text: RGB = (124, 192, 95)
+    bad_text: RGB = (235, 110, 90)
+    warn_text: RGB = (240, 190, 80)
+    tab_bg: RGB = (55, 52, 48)
+    tab_active: RGB = (78, 110, 60)
 
     @property
     def board_size(self) -> int:

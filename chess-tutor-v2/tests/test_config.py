@@ -21,6 +21,11 @@ def _clear_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "CHESS_API_DEPTH",
         "MULTIPV",
         "BLUNDER_THRESHOLD_CP",
+        "LICHESS_TOKEN",
+        "LICHESS_BOT",
+        "LICHESS_CLOCK_MINUTES",
+        "LICHESS_INCREMENT",
+        "OPENAI_AUTH_SCHEME",
     ):
         monkeypatch.delenv(name, raising=False)
 
@@ -84,6 +89,28 @@ def test_settings_is_frozen() -> None:
     )
     with pytest.raises(FrozenInstanceError):
         settings.multipv = 5  # type: ignore[misc]
+
+
+def test_lichess_defaults_to_local_opponent() -> None:
+    settings = load_settings()
+    assert settings.lichess_token is None
+    assert settings.use_lichess is False
+    assert settings.lichess_bot == "maia5"
+    assert settings.lichess_clock_minutes == 30
+    assert settings.lichess_increment == 0
+
+
+def test_lichess_env_overrides(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LICHESS_TOKEN", '"lip_abc"')
+    monkeypatch.setenv("LICHESS_BOT", "maia9")
+    monkeypatch.setenv("LICHESS_CLOCK_MINUTES", "15")
+    monkeypatch.setenv("LICHESS_INCREMENT", "10")
+    settings = load_settings()
+    assert settings.lichess_token == "lip_abc"  # surrounding quotes stripped
+    assert settings.use_lichess is True
+    assert settings.lichess_bot == "maia9"
+    assert settings.lichess_clock_minutes == 15
+    assert settings.lichess_increment == 10
 
 
 def test_module_loads_dotenv_on_import() -> None:
