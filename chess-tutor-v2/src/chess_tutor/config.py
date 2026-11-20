@@ -43,6 +43,21 @@ class Settings:
     multipv: int
     blunder_threshold_cp: int
 
+    # Opponent: a Lichess bot (Maia) when a token is set, else the local engine.
+    lichess_token: str | None = None
+    lichess_bot: str = "maia5"
+    lichess_clock_minutes: int = 30
+    lichess_increment: int = 0
+
+    # Authorization scheme for the OpenAI-compatible endpoint. Almost every
+    # provider uses "Bearer"; some gateways expect another scheme (e.g. "Key").
+    openai_auth_scheme: str = "Bearer"
+
+    @property
+    def use_lichess(self) -> bool:
+        """True when a Lichess token is configured (play the Lichess bot)."""
+        return bool(self.lichess_token)
+
     @property
     def has_llm(self) -> bool:
         """True when an LLM key is configured.
@@ -66,4 +81,9 @@ def load_settings() -> Settings:
         chess_api_depth=_get_int("CHESS_API_DEPTH", 13),
         multipv=_get_int("MULTIPV", 3),
         blunder_threshold_cp=_get_int("BLUNDER_THRESHOLD_CP", 80),
+        lichess_token=(os.getenv("LICHESS_TOKEN") or "").strip().strip("\"'") or None,
+        lichess_bot=(os.getenv("LICHESS_BOT") or "").strip() or "maia5",
+        lichess_clock_minutes=max(1, _get_int("LICHESS_CLOCK_MINUTES", 30)),
+        lichess_increment=max(0, _get_int("LICHESS_INCREMENT", 0)),
+        openai_auth_scheme=(os.getenv("OPENAI_AUTH_SCHEME") or "").strip() or "Bearer",
     )

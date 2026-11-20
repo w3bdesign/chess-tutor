@@ -1,89 +1,111 @@
 # Chess Tutor v2
 
-A **hybrid chess tutor**: a large language model is the _brain_ that proposes moves
-with plain-English reasoning, while a chess engine (Stockfish) has the **final
-say** on move quality. Think of it as _Stockfish with an AI coach bolted on_ — the
-AI explains and recommends, but the engine vetoes anything that would be a blunder.
+A desktop chess tutor for club players (~1600) that **explains every move** -
+yours and your opponent's - in plain English, with arrows and highlighted squares
+on the board, in the spirit of Jeremy Silman's _How to Reassess Your Chess_.
 
-The teaching experience is built around **candidate-move comparison**: for each
-position the engine surfaces its top few lines, and the coach explains _why this
-move_ and _why not that one_, so you learn by weighing real alternatives rather
-than memorizing a single "best" answer.
+Explanations are **computed, not generated** (the DecodeChess approach):
 
-> This is a proof-of-concept (POC). It is intentionally minimal and ships with a
-> Pygame desktop GUI (chess.com "Green" board theme), a thin front-end over the
-> reusable hybrid core. See
-> [Deferred / extension points](#deferred--extension-points) for what is planned
-> but out of scope for the POC.
+- **Stockfish** (via chess-api.com) judges move quality.
+- **python-chess** computes the board facts (tactics, pawn structure, outposts,
+  open files, king safety...).
+- **Fixed templates** turn those facts into sentences.
+
+No LLM is involved in the explanations, so they can't hallucinate. An LLM is used
+**only on demand** when you chat about a position, and even then it may only use
+the computed facts and must cite them.
+
+You can play a human-like, beatable opponent: **Lichess's Maia bots** (maia1 /
+maia5 / maia9) through the Lichess Board API, or the local engine.
+
+> This is a proof-of-concept. See [Deferred / next steps](#deferred--next-steps).
+
+---
+
+## Quick start
+
+From the project folder (first time: do [Setup](#setup) and fill in `.env`):
+
+```bash
+# Windows (cmd or PowerShell), no activation needed:
+.venv\Scripts\python.exe -m chess_tutor.gui.app
+
+# macOS / Linux:
+.venv/bin/python -m chess_tutor.gui.app
+```
+
+A window opens. With `LICHESS_TOKEN` set it challenges the configured Maia bot
+(status shows "Connecting to Lichess (maia5)..."); you play White. Without a token
+you play the local engine.
+
+---
+
+## What you get
+
+| Feature | Details |
+| --- | --- |
+| **Move review (both sides)** | Quality label (Best / Excellent / Good / Inaccuracy / Mistake / Blunder) from the drop in win chance; what the move does (captures, checks, forks, pins, development, attacks); Silman imbalance changes (green = good for the mover, red = bad); for weak moves the punishing engine line with the material it loses, and what was better. |
+| **Your turn** | Warnings about your loose pieces, Silman plan ideas derived from the imbalances, and the engine's move hidden until you press **H**. |
+| **Position tab** | All imbalances by category (material, minor pieces, pawn structure, space, files, outposts, development, king safety) and plan ideas for both sides. |
+| **Engine tab** | Top candidate lines with evals and SAN continuations, captured material, full move list. |
+| **"What if?"** | Right-click a legal target square to get a full review of that hypothetical move. |
+| **Glossary** | Off by default; press **G** to show definitions of every term used (outpost, backward pawn, bishop pair, ...). |
+| **PGN import / export** | **I** imports a PGN (file picker, or a PGN on the clipboard) and reviews every move of both players, with a game summary and the biggest turning points. **E** saves an annotated PGN (`?!` / `?` / `??` + review comments) that Lichess / ChessBase can read. |
+| **Browse moves** | **Left / Right** (and **Home / End**) step through the game - in your own games too - showing each move's review, arrows and eval. |
+| **Board visuals** | Arrows (green = better move, red = opponent's punishing reply / threats to you, orange = what a move attacks) and blue-outlined squares for the facts being described. |
+| **Coach chat (AI)** | Press **C** and ask anything about the current position. The LLM gets the engine lines and the numbered facts, must cite them (e.g. `[F4]`), says when the facts don't cover a question, and the cited squares light up on the board. |
+| **Lichess Maia opponent** | Casual games against maia1 (~1100), maia5 (~1500) or maia9 (~1900) from your normal Lichess account, with live clocks. |
 
 ---
 
 ## How it works
 
 ```
-                 ┌──────────────────────────────┐
-   position ───▶ │  AnalysisProvider (engine)   │  top-N candidate lines
-   (FEN)         │  chess-api.com (Stockfish 18) │  with eval + principal
-                 └──────────────┬───────────────┘  variation (MultiPV)
-                                │
-                                ▼
-                 ┌──────────────────────────────┐
-                 │  LLMClient (the "brain")      │  ONE grounded call →
-                 │  OpenAI-compatible SDK        │  recommended move + summary
-                 └──────────────┬───────────────┘  + per-candidate why/why-not
-                                │
-                                ▼
-                 ┌──────────────────────────────┐
-                 │  Hybrid core (engine = final  │  veto/fallback if the LLM's
-                 │  say, blunder guardrail)      │  pick loses > threshold cp
-                 └──────────────────────────────┘
+                      ┌───────────────────────────┐
+  position (FEN) ───▶ │ Stockfish via chess-api   │  top-N lines + evals
+                      └─────────────┬─────────────┘  (cached per FEN)
+                                    │
+                    ┌───────────────┴────────────────┐
+                    ▼                                ▼
+     ┌──────────────────────────┐     ┌──────────────────────────────┐
+     │ explain/review.py        │     │ explain/imbalances.py        │
+     │ label, tactics, line     │     │ Silman facts + plan ideas    │
+     │ consequences, better     │     │ (pure python-chess rules)    │
+     └────────────┬─────────────┘     └──────────────┬───────────────┘
+                  └───────────────┬──────────────────┘
+                                  ▼
+                 ┌────────────────────────────────────┐
+                 │ GUI panel + arrows / highlights    │
+                 └────────────────┬───────────────────┘
+                                  │ only when you press C
+                                  ▼
+                 ┌────────────────────────────────────┐
+                 │ explain/chat.py: LLM, fact IDs in, │
+                 │ citations out (OpenAI-compatible)  │
+                 └────────────────────────────────────┘
 ```
 
-1. The **engine** (via the `AnalysisProvider` seam) analyses the position and
-   returns the top candidate lines (MultiPV), each with an evaluation normalized
-   to the side-to-move and a principal variation.
-2. The **LLM** receives those engine-vetted candidates and, in a _single_ call,
-   returns a recommended move, a short summary, and a "why this / why not"
-   comment for **every** candidate.
-3. The **hybrid core** enforces that the engine has the final say: if the LLM's
-   choice is worse than the engine's best by more than `BLUNDER_THRESHOLD_CP`
-   centipawns, the engine's best move overrides it.
-
-The LLM only ever chooses among moves the engine has already vetted, so it can
-coach and prioritize but never play an illegal or losing move unchecked.
+- **Move quality** uses Lichess's win-chance model on the Stockfish score before
+  and after the move (inaccuracy ≥ 10 %, mistake ≥ 20 %, blunder ≥ 30 % lost).
+  The after-move search is preferred because it looks one ply deeper.
+- **Consequences** are measured by replaying Stockfish's own line move by move and
+  counting material at the first quiet point, so nothing is claimed mid-exchange.
+- **Imbalance changes** are compared after the immediate recaptures, so e.g.
+  `Bxc6 dxc6` is described as "Black gets the bishop pair; Black gets doubled
+  c-pawns".
 
 ---
 
 ## Requirements
 
 - **Python 3.11+**
-- An **OpenAI-compatible** LLM API key (defaults target Gemini's
-  OpenAI-compatible endpoint; any OpenAI-compatible provider works)
-- Network access to `chess-api.com` for engine analysis (POC backend)
+- Network access to `chess-api.com` (free engine analysis)
+- Optional: a **Lichess API token** (to play Maia)
+- Optional: an **OpenAI-compatible LLM key** (for the chat, and for the local tutor's move choice)
 
 ---
 
 ## Setup
-
-This project uses [**uv**](https://docs.astral.sh/uv/) for dependency management
-and a committed [`uv.lock`](uv.lock) for reproducible installs, with
-[**ruff**](https://docs.astral.sh/ruff/) for linting/formatting. The setuptools
-build backend is retained.
-
-### With uv (recommended)
-
-If `uv` is on your `PATH`, drop the `python -m` prefix from the commands below.
-
-```bash
-# Create the virtual environment and install everything (incl. dev tools)
-python -m uv sync --extra dev
-```
-
-`uv sync` creates a `.venv/` and installs the exact versions pinned in
-`uv.lock`. To add or bump a dependency, edit `pyproject.toml` and run
-`python -m uv lock` followed by `python -m uv sync --extra dev`.
-
-### With pip (alternative)
 
 ```bash
 python -m venv .venv
@@ -92,176 +114,167 @@ python -m venv .venv
 python -m pip install -e ".[dev]"
 ```
 
-### Configure environment
+Or with [uv](https://docs.astral.sh/uv/): `uv sync --extra dev` (uses the committed `uv.lock`).
 
-Copy the example file and fill in your API key:
+Then copy the example environment file and fill it in:
 
 ```bash
 # Windows:        copy .env.example .env
 # macOS / Linux:  cp .env.example .env
 ```
 
+`.env` is gitignored - never commit keys.
+
 ---
 
 ## Environment variables
 
-All settings are environment-driven (loaded via `python-dotenv` from `.env`).
-See [`.env.example`](.env.example) for the annotated source of truth.
+All settings are read from the environment / `.env` (see the annotated
+[`.env.example`](.env.example)).
 
-### LLM (the "brain", OpenAI-compatible)
+### Opponent: Lichess Maia
 
-| Variable          | Default                                                    | Description                                                      |
-| ----------------- | ---------------------------------------------------------- | ---------------------------------------------------------------- |
-| `OPENAI_API_KEY`  | _(none)_                                                   | API key for your provider. Required to use the coach.            |
-| `OPENAI_BASE_URL` | `https://generativelanguage.googleapis.com/v1beta/openai/` | OpenAI-compatible base URL (Gemini, OpenRouter, local proxy, …). |
-| `OPENAI_MODEL`    | `gemini-3.1-pro-preview`                                   | Model name — swap any model without changing code.               |
+| Variable | Default | Description |
+| --- | --- | --- |
+| `LICHESS_TOKEN` | _(none)_ | Personal token from <https://lichess.org/account/oauth/token/create> with **only** `board:play` + `challenge:write`. When set, you play a Lichess bot; otherwise the local engine plays. A normal account is enough (no BOT account needed). |
+| `LICHESS_BOT` | `maia5` | `maia1` (~1100), `maia5` (~1500), `maia9` (~1900). |
+| `LICHESS_CLOCK_MINUTES` | `30` | Real-time clock (Maia declines correspondence). |
+| `LICHESS_INCREMENT` | `0` | Increment in seconds. |
 
-### Chess engine analysis (the "authority")
+Games are casual (unrated). **N** aborts (before move 2) or resigns the current
+game and starts a new one; closing the window does the same.
 
-| Variable               | Default                  | Description                                                                                                   |
-| ---------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `CHESS_API_WS_URL`     | `wss://chess-api.com/v1` | WebSocket endpoint. MultiPV candidate lines are streamed here (POST returns only one move).                   |
-| `CHESS_API_DEPTH`      | `13`                     | Search depth requested from the engine (higher = stronger + slower).                                          |
-| `MULTIPV`              | `3`                      | Number of candidate lines to request — powers the comparison coaching.                                        |
-| `BLUNDER_THRESHOLD_CP` | `80`                     | If the LLM's move is worse than the engine's best by more than this many centipawns, the engine overrides it. |
+### LLM (chat + local tutor), OpenAI-compatible
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `OPENAI_API_KEY` | _(none)_ | API key for your provider. Without it the chat is disabled; everything else works. |
+| `OPENAI_BASE_URL` | `https://generativelanguage.googleapis.com/v1beta/openai/` | Any OpenAI-compatible endpoint (OpenRouter, Gemini, a gateway, a local proxy...). |
+| `OPENAI_MODEL` | `gemini-3.1-pro-preview` | Model name. |
+| `OPENAI_AUTH_SCHEME` | `Bearer` | Authorization scheme. Only change it if your gateway expects something else (e.g. `Key`). |
+
+### Engine analysis
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `CHESS_API_WS_URL` | `wss://chess-api.com/v1` | WebSocket endpoint (MultiPV lines are only streamed here). |
+| `CHESS_API_DEPTH` | `13` | Search depth. Higher = more accurate explanations, slower. |
+| `MULTIPV` | `3` | Number of candidate lines. |
+| `BLUNDER_THRESHOLD_CP` | `80` | Local tutor only: if the LLM's proposed move is this much worse than the engine's best, the engine's move is played instead. |
 
 ---
 
-## Usage (GUI)
+## Usage
 
-A **Pygame desktop board** using the chess.com default "Green" theme. It is a
-thin front-end over the hybrid core — no chess rules or move selection are
-reimplemented.
+Start the GUI (see also [Quick start](#quick-start)):
 
 ```bash
-# With uv
-python -m uv run chess-tutor-gui
+# Without activating the venv
+.venv\Scripts\python.exe -m chess_tutor.gui.app      # Windows
+.venv/bin/python -m chess_tutor.gui.app              # macOS / Linux
 
-# Or, inside an activated venv
+# Or, inside an activated venv (Windows: .venv\Scripts\activate,
+# macOS / Linux: source .venv/bin/activate)
 chess-tutor-gui
 ```
 
-Controls:
+| Input | Action |
+| --- | --- |
+| **Left-click** | Select a piece, then click a highlighted square to move (auto-queens). |
+| **Right-click** a legal target | "What if I played that?" - full review of the hypothetical move. |
+| **1 / 2 / 3** (or click the tabs, **Tab** cycles) | Moves / Position (Silman) / Engine. |
+| **H** | Show / hide the engine's suggested move on your turn. |
+| **G** | Show / hide the glossary ("Words used"). Off by default. |
+| **Left / Right, Home / End** | Step through the moves of the game. |
+| **I** | Import a PGN and review it (file picker; cancel to use a PGN on the clipboard). |
+| **E** | Export the game as an annotated PGN. |
+| **C** | Chat about the current position (Enter sends, Esc cancels). |
+| **Mouse wheel** | Scroll the panel. |
+| **F** | Flip the board. |
+| **N** | New game (resigns / aborts the current Lichess game). |
+| **Esc** | Clear the selection. |
 
-| Input           | Action                                                       |
-| --------------- | ------------------------------------------------------------ |
-| **Left-click**  | Select a piece, then click a highlighted square to move.     |
-| **Right-click** | On a legal target: ask "why not that move?" (free — no LLM). |
-| **F**           | Flip the board perspective.                                  |
-| **N**           | Start a new game.                                            |
-| **Esc**         | Clear the current selection.                                 |
+The broadcast-style **evaluation bar** on the left always shows White's
+perspective and flips with the board.
 
-You play one side; the tutor plays the other on a background thread (the window
-stays responsive while it thinks). The side panel shows the status, the engine's
-candidate-move comparison, the coach's narrative for the move just played, and
-captured material.
+### Cost model
 
-A broadcast-style **evaluation bar** runs down the far left of the window: White's
-share fills from White's end of the board (it flips with the board on **F**),
-Black's from the other, with a faint tick at the even (0.00) midpoint and a compact
-score label (e.g. `+1.3`, or `M3` for a forced mate). The fill uses a smooth
-logistic curve of the engine's centipawn evaluation, always shown from White's
-perspective regardless of whose turn it is.
-
-### Cost model (why it stays cheap)
-
-The hosted chess-api.com engine is **free**, but LLM calls cost tokens, so the
-GUI is deliberately frugal:
-
-- **Exactly one LLM call per tutor move** — the coached move plus its reasoning.
-- **Zero LLM calls for your moves or for "why not?" exploration** — those use
-  only free engine analysis, and results are cached per position (FEN) so
-  repeated queries on the same position don't even re-hit the free API.
+- **Engine analysis is free** (chess-api.com) and cached per position, shared by
+  move reviews, coaching and "what if?".
+- **Explanations use zero LLM calls.**
+- **Chat:** one LLM call per message you send.
+- **Local tutor (no Lichess token):** one LLM call per tutor move if `OPENAI_API_KEY`
+  is set (the LLM proposes, the engine can veto); otherwise it plays the engine's move.
 
 ---
 
 ## Development
 
-### Run tests
-
-Offline tests (fast; network tests are excluded by default via the `live` marker):
-
 ```bash
-python -m uv run pytest            # or: pytest
+pytest                     # offline tests (live tests excluded by default)
+ruff check .               # lint
 ```
 
-Opt-in **live** tests that hit the real `chess-api.com` service (require network):
+Opt-in live tests against chess-api.com:
 
 ```bash
-# Windows (cmd):
-set "RUN_LIVE_TESTS=1" && python -m uv run pytest -m live
-# macOS / Linux:
-RUN_LIVE_TESTS=1 python -m uv run pytest -m live
+# Windows (cmd):   set "RUN_LIVE_TESTS=1" && pytest -m live
+# macOS / Linux:   RUN_LIVE_TESTS=1 pytest -m live
 ```
 
-Run the full suite (offline + live):
+Handy scripts (in `scripts/`):
 
-```bash
-python -m uv run pytest -m "live or not live"
-```
-
-### Lint & format
-
-```bash
-python -m uv run ruff check .
-python -m uv run ruff format .
-```
+| Script | What it does |
+| --- | --- |
+| `review_live.py [uci moves...]` | Reviews every move of a game with the real engine and prints the explanations. |
+| `explain_demo.py` | Prints reviews / imbalances / plans for a few fixed positions (no network). |
+| `chat_live.py ["question"]` | One live chat call about a sample position (costs one LLM request). |
+| `gui_render_check.py` | Renders all three tabs headlessly to PNG with a fake engine. |
+| `lichess_smoke.py` | Plays 1.e4 against the configured bot on Lichess, then resigns. |
+| `lichess_spike.py` | The original Lichess feasibility check. |
 
 ---
 
 ## Project layout
 
 ```
-chess-tutor-v2/
-├── pyproject.toml          # project metadata, deps, ruff + pytest config
-├── uv.lock                 # committed lockfile for reproducible installs
-├── .env.example            # annotated environment variables
-└── src/chess_tutor/
-    ├── config.py           # env-driven Settings (frozen dataclass)
-    ├── engine/
-    │   ├── models.py       # CandidateLine, Analysis (eval normalized to side-to-move)
-    │   ├── provider.py     # AnalysisProvider interface (engine seam)
-    │   ├── chess_api.py    # ChessApiProvider over chess-api.com WebSocket
-    │   ├── llm.py          # LLMClient: grounded recommend + why-this/why-not
-    │   ├── hybrid.py       # HybridEngine: engine = final say, blunder guardrail
-    │   └── teaching.py     # comparison rows + why-this / why-not narratives
-    └── gui/                # Pygame front-end (chess.com "Green" theme)
-        ├── theme.py        # pure colour/dimension constants (no pygame)
-        ├── geometry.py     # pure square-to-pixel math (no pygame; unit-tested)
-        ├── pieces.py       # cached Unicode-glyph piece rendering
-        ├── controller.py   # thread-safe engine bridge (no pygame; testable)
-        └── app.py          # window, event loop, rendering (chess-tutor-gui)
+src/chess_tutor/
+├── config.py            # env-driven Settings (frozen dataclass)
+├── engine/
+│   ├── models.py        # CandidateLine, Analysis (eval normalized to side to move)
+│   ├── provider.py      # AnalysisProvider interface (engine seam)
+│   ├── chess_api.py     # ChessApiProvider over the chess-api.com WebSocket
+│   ├── llm.py           # OpenAI-compatible client (+ local tutor's move proposals)
+│   ├── hybrid.py        # HybridEngine: LLM proposes, engine has the final say
+│   └── teaching.py      # candidate comparison rows, why-not text
+├── explain/             # deterministic explanations (no LLM) + grounded chat
+│   ├── imbalances.py    # Silman facts + plan ideas
+│   ├── review.py        # per-move review, position coaching
+│   ├── glossary.py      # beginner definitions of every term used
+│   └── chat.py          # fact sheet with IDs, LLM chat, cited squares
+├── lichess/
+│   ├── client.py        # minimal Board API client (stdlib urllib, NDJSON streams)
+│   └── session.py       # one game vs a bot on a background thread, clocks
+└── gui/
+    ├── theme.py         # colours / sizes (no pygame)
+    ├── geometry.py      # square <-> pixel math (no pygame)
+    ├── pieces.py        # Unicode-glyph piece rendering
+    ├── controller.py    # game flow, threads, analysis cache, reviews, chat (no pygame)
+    └── app.py           # window, tabs, arrows, input (chess-tutor-gui)
 ```
-
-### Key abstractions
-
-- **`AnalysisProvider`** ([`engine/provider.py`](src/chess_tutor/engine/provider.py)) —
-  the abstract engine backend. The POC implementation is
-  **`ChessApiProvider`** over the chess-api.com WebSocket; a local Stockfish UCI
-  backend can be dropped in later behind the same interface.
-- **`CandidateLine` / `Analysis`** ([`engine/models.py`](src/chess_tutor/engine/models.py)) —
-  immutable engine results, with evaluations normalized to the side to move.
-- **`LLMClient`** ([`engine/llm.py`](src/chess_tutor/engine/llm.py)) — a thin
-  wrapper over any OpenAI-compatible chat endpoint. One call per move returns a
-  `MoveProposal` with the recommended move, a summary, and per-candidate
-  comparisons (`comment_for()` powers "why not `<move>`?").
 
 ---
 
-## Deferred / extension points
+## Deferred / next steps
 
-Intentionally out of scope for the POC, but the design leaves clear seams:
-
-- **Local Stockfish (UCI)** — swap chess-api.com for a local engine by adding a
-  new `AnalysisProvider` implementation; nothing else changes.
-- **Docker** — containerized deployment (engine + service).
-- **FastAPI / HTTP API / MCP** — expose the hybrid core as a web API or an MCP
-  server for other tools to consume. The engine, LLM, hybrid, and teaching
-  layers are already decoupled from presentation — the Pygame GUI is a thin
-  consumer of the same core, so a web front-end would be too.
-- **Richer GUI** — drag-and-drop pieces, a promotion picker (the GUI currently
-  auto-queens), a move list / PGN export, and bundled piece artwork in place of
-  Unicode glyphs.
+- **Threat scan** ("what does this move threaten / prevent") via null-move engine
+  searches, for deeper DecodeChess-style reasoning.
+- **Focus lenses** (tactics, opening principles, endgame technique) beyond the
+  Silman view.
+- **Local Stockfish (UCI)** as another `AnalysisProvider` (faster, deeper, offline).
+- **GUI:** promotion picker (currently auto-queens), PGN export, stepping through
+  engine lines on the board, browsing reviews of earlier moves.
+- **Lichess:** draw offers / takebacks; choosing your colour.
 
 ---
 

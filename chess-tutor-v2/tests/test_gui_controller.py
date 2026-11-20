@@ -39,6 +39,21 @@ def _controller(human_color: chess.Color = chess.WHITE) -> GameController:
     return GameController(_DummyEngine(), human_color=human_color)
 
 
+def test_play_from_here_rewinds_to_viewed_position() -> None:
+    board = chess.Board()
+    for san in ("e4", "e5", "Nf3", "Nc6"):
+        board.push_san(san)
+    controller = GameController(_DummyEngine(), human_color=chess.WHITE, board=board)
+    assert controller.can_play_from_here is False  # at the latest position
+    controller.set_view(3)  # after 2.Nf3, Black to move
+    assert controller.can_play_from_here is True
+    controller.play_from_here()
+    assert len(controller.board.move_stack) == 3
+    assert controller.at_latest
+    assert controller.human_color == chess.BLACK
+    assert controller.is_human_turn
+
+
 def test_should_not_start_on_humans_turn_at_game_start() -> None:
     controller = _controller(human_color=chess.WHITE)
     # White (the human) is to move from the opening position.
@@ -134,9 +149,10 @@ def test_should_coach_on_humans_turn_once_per_position() -> None:
     controller.coach_side_to_move()
     controller._coach_worker.join(timeout=2)
 
-    # The coach produced a "your best" headline + candidate rows for the player.
-    assert engine.calls == 1
-    assert "Your best" in controller.state.headline
+    # The coach produced deterministic coaching + candidate rows (no LLM call).
+    assert engine.calls == 0
+    assert controller.state.coaching is not None
+    assert "Engine's move: 1.e4" in controller.state.coaching.best_text
     assert controller.state.rows
     assert controller.state.thinking is False
     # Second poll for the *same* position must not re-fire (one pass per FEN).
